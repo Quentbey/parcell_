@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parcell — Analyse Immobilière</title>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="css/main.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
+</head>
+<body>
+
+<div class="ambient ambient-1"></div>
+<div class="ambient ambient-2"></div>
+
+<!-- AUTH WALL — shown when not logged in -->
+<div id="authWall" style="display:none;">
+  <!-- Injecté par auth.js -->
+</div>
+
+<!-- APP — shown when logged in -->
+<div id="appRoot" style="display:none;">
+  <!-- NAV -->
+  <nav>
+    <div class="nav-inner">
+      <a class="logo" href="#">
+        <div class="logo-mark">
+          <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <span class="logo-name">Parc<span>ell</span></span>
+      </a>
+      <div class="nav-user">
+        <span class="nav-user-name" id="navUserName" onclick="toggleUserDropdown()"></span>
+        <div class="nav-avatar" id="navAvatar" onclick="toggleUserDropdown()"></div>
+        <div class="user-dropdown" id="userDropdown">
+          <div class="ud-header">
+            <div class="ud-name" id="ddName">—</div>
+            <div class="ud-email" id="ddEmail">—</div>
+            <span class="ud-plan">⭐ Plan Gratuit</span>
+          </div>
+          <div class="ud-item" onclick="switchTab('compte',null);closeUserDropdown()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+            Mon profil
+          </div>
+          <div class="ud-item" onclick="switchTab('compte',null);showCompteSection('projets');closeUserDropdown()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+            Mes projets
+          </div>
+          <div class="ud-item" onclick="switchTab('compte',null);showCompteSection('notifs');closeUserDropdown()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+            Notifications
+            <span id="navNotifBadge" style="display:none;margin-left:auto;background:var(--teal);color:#0a0d14;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;"></span>
+          </div>
+          <div class="ud-divider"></div>
+          <div class="ud-item ud-logout" onclick="signOut()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Se déconnecter
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- SHELL -->
+  <div class="shell">
+    <div class="hero">
+      <div class="hero-eyebrow">📊 Analyse immobilière</div>
+      <h1>Investissez avec<br><strong>les bonnes données</strong></h1>
+      <p>Comparez les villes françaises, visualisez les tendances et simulez votre rentabilité locative.</p>
+      <div class="main-tabs">
+        <button class="main-tab active" onclick="switchTab('analyse',this)"><span>📊</span> Analyse</button>
+        <button class="main-tab" onclick="switchTab('simulateur',this)"><span>💰</span> Simulateur</button>
+        <button class="main-tab" onclick="switchTab('compte',this)"><span>👤</span> Mon espace</button>
+      </div>
+    </div>
+    <div class="divider-hero"></div>
+
+    <!-- Les onglets sont chargés dynamiquement par app.js -->
+    <div id="tabContainer"></div>
+  </div>
+
+  <!-- MODALS & TOAST -->
+  <div class="detail-overlay" id="detailOverlay" onclick="closeDrawer()"></div>
+  <div class="detail-drawer" id="detailDrawer">
+    <div class="drawer-close" onclick="closeDrawer()">✕</div>
+    <div class="drawer-title" id="drawerTitle">—</div>
+    <div class="drawer-subtitle" id="drawerSubtitle">—</div>
+    <div id="drawerContent"></div>
+  </div>
+
+  <div class="modal-overlay" id="saveModal" onclick="closeSaveModal(event)">
+    <div class="modal-box">
+      <div class="modal-title">💾 Sauvegarder le projet</div>
+      <div class="modal-sub">Ce projet sera accessible dans votre espace personnel.</div>
+      <div class="modal-field"><label>Nom du projet</label><input type="text" id="saveProjectName" placeholder="Ex : Appart Lyon 3e — Part-Dieu"></div>
+      <div class="modal-field"><label>Note (optionnel)</label><textarea id="saveProjectNote" rows="2" placeholder="Ex : Bonne affaire, à voir avec le banquier…"></textarea></div>
+      <div class="modal-actions">
+        <button class="modal-btn-cancel" onclick="closeSaveModal()">Annuler</button>
+        <button class="modal-btn-save" onclick="saveProject()">Sauvegarder</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="save-toast" id="saveToast">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <span id="toastMsg">✓</span>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Leaflet & Charts -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<!-- App scripts — ordre important -->
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/data.js"></script>
+<script src="js/simulator.js"></script>
+<script src="js/projects.js"></script>
+<script src="js/map.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
