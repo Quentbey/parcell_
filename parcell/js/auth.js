@@ -9,7 +9,7 @@ let currentProfile = null;
 // ── Initialisation : vérifie la session au chargement ──
 async function initAuth() {
   // Récupère la session existante (persistance)
-  const { data: { session } } = await supabase.auth.getSession();
+  const { data: { session } } = await supabaseClient.auth.getSession();
 
   if (session) {
     await onUserLoggedIn(session.user);
@@ -18,7 +18,7 @@ async function initAuth() {
   }
 
   // Écoute les changements d'état (login, logout, token refresh)
-  supabase.auth.onAuthStateChange(async (event, session) => {
+  supabaseClient.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
       await onUserLoggedIn(session.user);
     } else if (event === 'SIGNED_OUT') {
@@ -79,7 +79,7 @@ async function loadOrCreateProfile(user) {
         objectif: 'cashflow'
       }
     };
-    await supabase.from('profiles').insert(newProfile);
+    await supabaseClient.from('profiles').insert(newProfile);
     return newProfile;
   }
   return data;
@@ -251,7 +251,7 @@ async function handleAuthSubmit() {
       // ── Mode : mot de passe oublié ──
       const email = document.getElementById('authEmail').value.trim();
       if (!email) { showError('Veuillez entrer votre email.'); return; }
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      const { error } = await supabaseClient.auth.resetPasswordForEmail(email, {
         redirectTo: window.location.origin + '/?reset=true'
       });
       if (error) throw error;
@@ -268,7 +268,7 @@ async function handleAuthSubmit() {
       if (password.length < 8) { showError('Le mot de passe doit faire au moins 8 caractères.'); return; }
       if (password !== confirm) { showError('Les mots de passe ne correspondent pas.'); return; }
 
-      const { data, error } = await supabase.auth.signUp({
+      const { data, error } = await supabaseClient.auth.signUp({
         email, password,
         options: { data: { full_name: fullName } }
       });
@@ -282,7 +282,7 @@ async function handleAuthSubmit() {
 
       if (!email || !password) { showError('Email et mot de passe requis.'); return; }
 
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) throw error;
       // onAuthStateChange prend le relais
     }
@@ -299,7 +299,7 @@ async function handleAuthSubmit() {
 
 // ── OAuth Google ──
 async function signInWithGoogle() {
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { error } = await supabaseClient.auth.signInWithOAuth({
     provider: 'google',
     options: {
       redirectTo: window.location.origin,
@@ -311,7 +311,7 @@ async function signInWithGoogle() {
 
 // ── Déconnexion ──
 async function signOut() {
-  await supabase.auth.signOut();
+  await supabaseClient.auth.signOut();
   closeUserDropdown();
 }
 
