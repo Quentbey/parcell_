@@ -7,8 +7,8 @@
 // 3. Aller dans Settings > API
 // 4. Copier "Project URL" et "anon public key" ci-dessous
 
-const SUPABASE_URL = 'VOTRE_SUPABASE_URL';        // ex: https://xxxx.supabase.co
-const SUPABASE_ANON_KEY = 'VOTRE_SUPABASE_ANON_KEY'; // clé publique (safe côté client)
+const SUPABASE_URL = 'https://odjxxbbufbumlyxgqkaq.supabase.co';        // ex: https://xxxx.supabase.co
+const SUPABASE_ANON_KEY = 'sb_publishable_MOcAWRPbtcgnLOPMbTP5Sg_VLWoTZO8'; // clé publique (safe côté client)
 
 // Initialisation du client Supabase
 const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
