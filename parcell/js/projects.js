@@ -52,7 +52,7 @@ async function saveProjectToDB(projectData) {
     updated_at: new Date().toISOString(),
   };
 
-  const { data, error } = await supabase.from('projects').insert(payload).select().single();
+  const { data, error } = await supabaseClient.from('projects').insert(payload).select().single();
   if (error) { console.error('saveProject:', error); showToast('Erreur lors de la sauvegarde', 'err'); return null; }
 
   savedProjects.unshift(data);
