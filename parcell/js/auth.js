@@ -57,7 +57,7 @@ function onUserLoggedOut() {
 
 // ── Charge ou crée le profil utilisateur ──
 async function loadOrCreateProfile(user) {
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('profiles')
     .select('*')
     .eq('id', user.id)
