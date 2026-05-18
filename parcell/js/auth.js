@@ -1,30 +1,44 @@
 // ============================================================
-// auth.js — Authentification complète (email + Google OAuth)
+// auth.js — Authentification optionnelle (mode invité par défaut)
 // ============================================================
 
 // ── État utilisateur global ──
 let currentUser    = null;
 let currentProfile = null;
+let _appInitialized = false;
 
-// ── Initialisation : vérifie la session au chargement ──
+// ── Initialisation : vérifie la session, lance l'app dans tous les cas ──
 async function initAuth() {
   const { data: { session } } = await supabaseClient.auth.getSession();
 
   if (session) {
     await onUserLoggedIn(session.user);
   } else {
-    showAuthWall('login');
+    // Pas de session → lancer l'app en mode invité
+    showAppAsGuest();
   }
 
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
     if (event === 'SIGNED_IN' && session) {
+      closeAuthModal();
       await onUserLoggedIn(session.user);
     } else if (event === 'SIGNED_OUT') {
       onUserLoggedOut();
     } else if (event === 'PASSWORD_RECOVERY') {
-      showAuthWall('reset-password');
+      showAuthModal('reset-password');
     }
   });
+}
+
+// ── Mode invité : app visible sans connexion ──
+function showAppAsGuest() {
+  closeAuthModal();
+  document.getElementById('appRoot').style.display = 'block';
+  updateNavGuest();
+  if (!_appInitialized && typeof initApp === 'function') {
+    _appInitialized = true;
+    initApp();
+  }
 }
 
 // ── Connexion réussie ──
@@ -33,18 +47,29 @@ async function onUserLoggedIn(user) {
   currentProfile = await loadOrCreateProfile(user);
   updateNavUser(user, currentProfile);
 
-  document.getElementById('authWall').style.display = 'none';
-  document.getElementById('appRoot').style.display  = 'block';
+  document.getElementById('appRoot').style.display = 'block';
 
-  if (typeof initApp === 'function') initApp();
+  if (!_appInitialized && typeof initApp === 'function') {
+    // Première fois : lancer l'app complète
+    _appInitialized = true;
+    initApp();
+  } else {
+    // App déjà lancée en mode invité : juste recharger les projets
+    if (typeof loadProjects === 'function') loadProjects();
+    // Mettre à jour l'onglet Mon Espace si ouvert
+    const compteSection = document.getElementById('tab-compte');
+    if (compteSection?.classList.contains('active')) {
+      refreshCompteTab();
+    }
+  }
 }
 
 // ── Déconnexion ──
 function onUserLoggedOut() {
   currentUser    = null;
   currentProfile = null;
-  document.getElementById('appRoot').style.display = 'none';
-  showAuthWall('login');
+  // L'app reste visible, on repasse simplement en mode invité
+  showAppAsGuest();
 }
 
 // ── Charge ou crée le profil utilisateur ──
@@ -76,18 +101,28 @@ async function loadOrCreateProfile(user) {
   return data;
 }
 
-// ── Met à jour le nav ──
+// ── Met à jour le nav (utilisateur connecté) ──
 function updateNavUser(user, profile) {
   const name     = profile?.full_name || user.email.split('@')[0];
   const initials = name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
 
-  const nameEl  = document.getElementById('navUserName');
+  const nameEl   = document.getElementById('navUserName');
   const avatarEl = document.getElementById('navAvatar');
-  const ddName  = document.getElementById('ddName');
-  const ddEmail = document.getElementById('ddEmail');
+  const ddName   = document.getElementById('ddName');
+  const ddEmail  = document.getElementById('ddEmail');
+  const dropdown = document.getElementById('userDropdown');
 
-  if (nameEl)  nameEl.textContent = name.split(' ')[0];
+  if (dropdown) dropdown.style.display = '';
+
+  if (nameEl) {
+    nameEl.textContent = name.split(' ')[0];
+    nameEl.style.color = '';
+    nameEl.onclick = () => toggleUserDropdown();
+    nameEl.style.cursor = 'pointer';
+  }
   if (avatarEl) {
+    avatarEl.onclick = () => toggleUserDropdown();
+    avatarEl.style.cursor = 'pointer';
     if (profile?.avatar_url) {
       avatarEl.innerHTML = `<img src="${profile.avatar_url}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;">`;
     } else {
@@ -98,19 +133,78 @@ function updateNavUser(user, profile) {
   if (ddEmail) ddEmail.textContent = user.email;
 }
 
+// ── Met à jour le nav (mode invité) ──
+function updateNavGuest() {
+  const nameEl   = document.getElementById('navUserName');
+  const avatarEl = document.getElementById('navAvatar');
+  const dropdown = document.getElementById('userDropdown');
+
+  if (dropdown) dropdown.style.display = 'none';
+
+  if (nameEl) {
+    nameEl.textContent = 'Connexion';
+    nameEl.onclick = () => showAuthModal('login');
+    nameEl.style.cursor = 'pointer';
+    nameEl.style.color = 'var(--gold, #c9a84c)';
+  }
+  if (avatarEl) {
+    avatarEl.onclick = () => showAuthModal('login');
+    avatarEl.style.cursor = 'pointer';
+    avatarEl.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>`;
+  }
+}
+
+// ── Rafraîchit l'onglet Mon Espace après connexion ──
+function refreshCompteTab() {
+  const profileName  = document.getElementById('profileName');
+  const profileEmail = document.getElementById('profileEmail');
+  const profileBig   = document.getElementById('profileAvatarBig');
+  if (currentProfile && profileName) {
+    const name = currentProfile.full_name || currentUser?.email?.split('@')[0] || '—';
+    profileName.textContent  = name;
+    profileEmail.textContent = currentUser?.email || '—';
+    if (profileBig) profileBig.textContent = name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+  }
+}
+
 // ══════════════════════════════════════════
-// MUR D'AUTHENTIFICATION
+// MODAL D'AUTHENTIFICATION (overlay)
 // ══════════════════════════════════════════
-function showAuthWall(mode = 'login') {
+function showAuthModal(mode = 'login') {
   const wall = document.getElementById('authWall');
   wall.style.cssText = `
     display:flex; align-items:center; justify-content:center;
-    min-height:100vh; padding:24px;
-    background: var(--bg, #080b12);
+    position:fixed; inset:0; z-index:1000;
+    background:rgba(8,11,18,0.88); backdrop-filter:blur(6px);
+    padding:24px;
   `;
-  wall.innerHTML = renderAuthHTML(mode);
+  wall.innerHTML = `
+    <div style="position:relative;width:100%;max-width:440px;">
+      <button onclick="closeAuthModal()"
+        style="position:absolute;top:-14px;right:-14px;z-index:10;
+               background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.13);
+               border-radius:50%;width:32px;height:32px;color:#7e8a9e;cursor:pointer;
+               font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;
+               transition:all 0.2s;"
+        onmouseover="this.style.background='rgba(255,255,255,0.16)'"
+        onmouseout="this.style.background='rgba(255,255,255,0.08)'">✕</button>
+      ${renderAuthHTML(mode)}
+    </div>`;
+  // Cliquer sur le fond sombre ferme la modal
+  wall.addEventListener('click', e => { if (e.target === wall) closeAuthModal(); }, { once: true });
 }
 
+// Alias rétrocompatible (appels existants à showAuthWall dans l'HTML)
+const showAuthWall = showAuthModal;
+
+function closeAuthModal() {
+  const wall = document.getElementById('authWall');
+  if (wall) wall.style.display = 'none';
+}
+
+// ══════════════════════════════════════════
+// RENDU DU FORMULAIRE AUTH
+// ══════════════════════════════════════════
 function renderAuthHTML(mode) {
   const isLogin  = mode === 'login';
   const isSignup = mode === 'signup';
@@ -182,7 +276,7 @@ function renderAuthHTML(mode) {
 
     ${isLogin ? `
     <div style="text-align:right;margin-bottom:16px;">
-      <span onclick="showAuthWall('forgot')" style="font-size:12px;color:#7e8a9e;cursor:pointer;" onmouseover="this.style.color='#c9a84c'" onmouseout="this.style.color='#7e8a9e'">Mot de passe oublié ?</span>
+      <span onclick="showAuthModal('forgot')" style="font-size:12px;color:#7e8a9e;cursor:pointer;" onmouseover="this.style.color='#c9a84c'" onmouseout="this.style.color='#7e8a9e'">Mot de passe oublié ?</span>
     </div>
     ` : ''}
 
@@ -199,9 +293,9 @@ function renderAuthHTML(mode) {
 
   <!-- Switch mode -->
   <div style="text-align:center;margin-top:18px;font-size:13px;color:#7e8a9e;">
-    ${isLogin  ? `Pas encore de compte ? <span onclick="showAuthWall('signup')" style="color:#c9a84c;cursor:pointer;font-weight:600;">Créer un compte</span>` : ''}
-    ${isSignup ? `Déjà un compte ? <span onclick="showAuthWall('login')" style="color:#c9a84c;cursor:pointer;font-weight:600;">Se connecter</span>` : ''}
-    ${isReset  ? `<span onclick="showAuthWall('login')" style="color:#c9a84c;cursor:pointer;font-weight:600;">← Retour à la connexion</span>` : ''}
+    ${isLogin  ? `Pas encore de compte ? <span onclick="showAuthModal('signup')" style="color:#c9a84c;cursor:pointer;font-weight:600;">Créer un compte</span>` : ''}
+    ${isSignup ? `Déjà un compte ? <span onclick="showAuthModal('login')" style="color:#c9a84c;cursor:pointer;font-weight:600;">Se connecter</span>` : ''}
+    ${isReset  ? `<span onclick="showAuthModal('login')" style="color:#c9a84c;cursor:pointer;font-weight:600;">← Retour à la connexion</span>` : ''}
   </div>
 </div>`;
 }
@@ -221,7 +315,6 @@ async function handleAuthSubmit() {
   const showError   = (msg) => { if(errEl){ errEl.textContent = msg; errEl.style.display = 'block'; } if(sucEl) sucEl.style.display = 'none'; };
   const showSuccess = (msg) => { if(sucEl){ sucEl.textContent = msg; sucEl.style.display = 'block'; } if(errEl) errEl.style.display = 'none'; };
 
-  // ✅ Correction : sauvegarde le texte d'origine avant de l'effacer
   const originalText = btn.textContent;
   btn.textContent = 'Chargement…';
   btn.style.opacity = '0.7';
@@ -267,7 +360,6 @@ async function handleAuthSubmit() {
   } finally {
     btn.disabled = false;
     btn.style.opacity = '1';
-    // ✅ Restaure le texte d'origine (corrige le bug 'Valider')
     btn.textContent = originalText;
   }
 }
@@ -310,7 +402,7 @@ function translateAuthError(msg) {
   return errors[msg] || msg || 'Une erreur est survenue. Réessayez.';
 }
 
-// ── Nav dropdown ──
+// ── Nav dropdown (utilisateur connecté) ──
 function toggleUserDropdown() { document.getElementById('userDropdown').classList.toggle('open'); }
 function closeUserDropdown()  { document.getElementById('userDropdown').classList.remove('open'); }
 document.addEventListener('click', e => {
