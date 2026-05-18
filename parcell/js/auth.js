@@ -7,15 +7,21 @@ let currentUser    = null;
 let currentProfile = null;
 let _appInitialized = false;
 
-// ── Initialisation : vérifie la session, lance l'app dans tous les cas ──
+// ── Initialisation : lance l'app immédiatement, vérifie la session en arrière-plan ──
 async function initAuth() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
+  // Afficher l'app en mode invité sans attendre Supabase (chargement instantané)
+  showAppAsGuest();
 
-  if (session) {
-    await onUserLoggedIn(session.user);
-  } else {
-    // Pas de session → lancer l'app en mode invité
-    showAppAsGuest();
+  // Vérifier la session en arrière-plan
+  try {
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (session) {
+      // Utilisateur connecté → passer en mode connecté
+      await onUserLoggedIn(session.user);
+    }
+  } catch(e) {
+    // Session non disponible, on reste en mode invité
+    console.warn('Parcell: session check failed', e);
   }
 
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
@@ -404,11 +410,4 @@ function translateAuthError(msg) {
 
 // ── Nav dropdown (utilisateur connecté) ──
 function toggleUserDropdown() { document.getElementById('userDropdown').classList.toggle('open'); }
-function closeUserDropdown()  { document.getElementById('userDropdown').classList.remove('open'); }
-document.addEventListener('click', e => {
-  const nav = document.querySelector('.nav-user');
-  if (nav && !nav.contains(e.target)) closeUserDropdown();
-});
-
-// ── Lance l'auth au chargement ──
-document.addEventListener('DOMContentLoaded', initAuth);
+function closeUserDropdown()  { document.getElementById('userDropdown').classLis
