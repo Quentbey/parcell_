@@ -14,8 +14,8 @@ async function initApp() {
   if (typeof initMap === 'function') initMap();
   onSimVilleChange();
   calcSim();
-  // Précharge les projets en arrière-plan
-  loadProjects();
+  // Précharge les projets uniquement si connecté
+  if (typeof currentUser !== 'undefined' && currentUser) loadProjects();
 }
 
 // ── Injection des onglets ──
@@ -235,7 +235,7 @@ function renderSimulateurTab() {
         </div>
       </div>
       <button class="more-btn" onclick="openDrawer('marche')">🏘️ Marché local &amp; tension locative →</button>
-      <button class="save-btn" onclick="openSaveModal()">
+      <button class="save-btn" onclick="currentUser ? openSaveModal() : showAuthModal('login')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Sauvegarder ce projet
       </button>
@@ -305,13 +305,45 @@ function renderCompteTab() {
         </div>
         <div style="background:linear-gradient(135deg,var(--card2),var(--bg3));border:1px solid rgba(201,168,76,0.25);border-radius:var(--radius);padding:20px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><div><div style="font-family:'Outfit',sans-serif;font-size:16px;font-weight:700;color:var(--gold);">Plan Pro <span style="font-size:11px;background:var(--gold);color:#0a0d14;padding:2px 7px;border-radius:8px;margin-left:6px;vertical-align:middle;">Bientôt</span></div><div style="font-size:13px;color:var(--text2);margin-top:2px;">Toutes les fonctionnalités</div></div><span style="font-family:'Outfit',sans-serif;font-size:22px;font-weight:700;color:var(--gold);">9 € <span style="font-size:13px;font-weight:400;color:var(--text3)">/mois</span></span></div>
-          <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:14px;">✅ Tout du gratuit · ✅ Projets illimités · ✅ Mode Pro · ✅ Export PDF · ✅ Alertes prix · ✅ DVF reel</div>
+          <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:14px;">✅ Tout du gratuit · ✅ Projets illimités · ✅ Mode Pro · ✅ Export PDF · ✅ Alertes prix · ✅ DVF réel</div>
           <button style="padding:10px 20px;background:var(--gold);border:none;border-radius:8px;color:#0a0d14;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:not-allowed;opacity:0.6;">Bientôt disponible</button>
         </div>
       </div>
     </div>
   </div>
 </div>`;
+}
+
+// ── Écran invité dans Mon Espace ──
+function renderGuestCompteOverlay() {
+  const main = document.querySelector('#tab-compte .compte-main');
+  if (!main || currentUser) return;
+  main.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;
+                min-height:340px;text-align:center;padding:40px 24px;">
+      <div style="font-size:48px;margin-bottom:16px;">🔐</div>
+      <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;
+                  color:var(--text);margin-bottom:10px;">Espace personnel</div>
+      <div style="font-size:14px;color:var(--text3);max-width:320px;line-height:1.6;margin-bottom:28px;">
+        Connectez-vous pour sauvegarder vos projets, accéder à votre profil
+        et retrouver vos simulations depuis n'importe quel appareil.
+      </div>
+      <button onclick="showAuthModal('login')"
+        style="padding:12px 28px;background:linear-gradient(135deg,#c9a84c,#e8c97a);
+               border:none;border-radius:10px;color:#0a0d14;font-family:'DM Sans',sans-serif;
+               font-size:14px;font-weight:700;cursor:pointer;transition:opacity 0.2s;
+               margin-bottom:12px;letter-spacing:0.01em;"
+        onmouseover="this.style.opacity='.9'" onmouseout="this.style.opacity='1'">
+        Se connecter
+      </button>
+      <div style="font-size:13px;color:var(--text3);">
+        Pas de compte ?
+        <span onclick="showAuthModal('signup')"
+          style="color:var(--gold,#c9a84c);cursor:pointer;font-weight:600;">
+          Créer un compte gratuit →
+        </span>
+      </div>
+    </div>`;
 }
 
 // ── Tab switch ──
@@ -330,7 +362,15 @@ function switchTab(tab, el) {
     });
   }
   if (tab === 'analyse') setTimeout(() => { if (typeof leafletMap !== 'undefined' && leafletMap) leafletMap.invalidateSize(); }, 200);
-  if (tab === 'compte') { populateProfileForm(); showCompteSection('projets'); }
+  if (tab === 'compte') {
+    if (!currentUser) {
+      // Invité : afficher l'écran de connexion à la place du contenu
+      renderGuestCompteOverlay();
+    } else {
+      populateProfileForm();
+      showCompteSection('projets');
+    }
+  }
 }
 
 // ── Compte sections ──
@@ -357,9 +397,9 @@ function populateProfileForm() {
   const fn = document.getElementById('profileFirstName'); if (fn) fn.value = parts[0] || '';
   const ln = document.getElementById('profileLastName');  if (ln) ln.value = parts.slice(1).join(' ') || '';
   const em = document.getElementById('profileEmailEdit'); if (em) em.value = currentUser.email;
-  const ci = document.getElementById('profileCity');      if (ci){ ci.value = currentProfile.preferences?.city || '';}
-  const ph = document.getElementById('profilePhone');     if (ph){ ph.value = currentProfile.preferences?.phone || '';}
-  const ob = document.getElementById('profileObjectif');  if (ob){ ob.value = currentProfile.preferences?.objectif || 'cashflow';}
+  const ci = document.getElementById('profileCity');      if (ci) ci.value = currentProfile.preferences?.city || '';
+  const ph = document.getElementById('profilePhone');     if (ph) ph.value = currentProfile.preferences?.phone || '';
+  const ob = document.getElementById('profileObjectif');  if (ob) ob.value = currentProfile.preferences?.objectif || 'cashflow';
 }
 
 async function saveProfile() {
