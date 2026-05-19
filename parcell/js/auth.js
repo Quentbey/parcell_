@@ -410,4 +410,16 @@ function translateAuthError(msg) {
 
 // ── Nav dropdown (utilisateur connecté) ──
 function toggleUserDropdown() { document.getElementById('userDropdown').classList.toggle('open'); }
-function closeUserDropdown()  { document.getElementById('userDropdown').classLis
+function closeUserDropdown()  { document.getElementById('userDropdown').classList.remove('open'); }
+document.addEventListener('click', e => {
+  const nav = document.querySelector('.nav-user');
+  if (nav && !nav.contains(e.target)) closeUserDropdown();
+});
+
+// ── Lance l'auth au chargement ──
+// Gère les deux cas : DOM encore en cours de chargement, ou déjà prêt (scripts en bas de body)
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAuth);
+} else {
+  initAuth();
+}
