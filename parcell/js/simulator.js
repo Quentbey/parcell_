@@ -70,7 +70,7 @@ function renderChips(){
   const w=document.getElementById('chipsWrap');
   if(!w)return;
   if(!selectedCities.length){w.innerHTML='';return;}
-  w.innerHTML=selectedCities.map(v=>`<div class="chip" onclick="toggleCity('${v.Ville.replace(/'/g,"\\'")}')">  ${v.Ville} <span>✕</span></div>`).join('');
+  w.innerHTML=selectedCities.map(v=>`<div class="chip" onclick="toggleCity('${v.replace(/'/g,"\\'")}')">  ${v.Ville} <span>✕</span></div>`).join('');
 }
 function renderKPIs(){
   const sel=VILLES.filter(c=>selectedCities.includes(c.Ville));
