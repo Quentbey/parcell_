@@ -8,7 +8,7 @@ let VILLES = [];
 let VILLES_PAR_REGION = {};
 let VILLES_PAR_DEPT = {};
 let _citiesLoaded = false;
-let _selectedVilles = [];   // villes sélectionnées dans l'onglet Analyse
+let selectedCities = [];   // villes sélectionnées dans l'onglet Analyse
 let _sortCol = null;
 let _sortAsc = true;
 
@@ -183,13 +183,13 @@ function hideCityDropdown() {
 function addVille(nom) {
   const v = VILLES.find(x => x.Ville === nom);
   if (!v) return;
-  if (_selectedVilles.find(x => x.Ville === nom)) return; // déjà ajoutée
-  _selectedVilles.push(v);
+  if (selectedCities.find(x => x.Ville === nom)) return; // déjà ajoutée
+  selectedCities.push(v);
   renderAnalyseView();
 }
 
 function removeVille(nom) {
-  _selectedVilles = _selectedVilles.filter(v => v.Ville !== nom);
+  selectedCities = selectedCities.filter(v => v.Ville !== nom);
   renderAnalyseView();
 }
 
@@ -199,8 +199,8 @@ function renderAnalyseView() {
   renderKPICards();
   renderRanking();
   renderTable();
-  if (typeof updateMapMarkers === 'function') updateMapMarkers(_selectedVilles);
-  if (typeof renderCharts === 'function') renderCharts(_selectedVilles);
+  if (typeof updateMapMarkers === 'function') updateMapMarkers(selectedCities);
+  if (typeof renderCharts === 'function') renderCharts(selectedCities);
 }
 
 // ── Chips villes sélectionnées ────────────────────────────────
@@ -209,12 +209,12 @@ function renderChips() {
   const wrap    = document.getElementById('chipsWrap');
   if (!section || !wrap) return;
 
-  if (!_selectedVilles.length) {
+  if (!selectedCities.length) {
     section.style.display = 'none';
     return;
   }
   section.style.display = 'block';
-  wrap.innerHTML = _selectedVilles.map(v =>
+  wrap.innerHTML = selectedCities.map(v =>
     `<div class="chip" onclick="removeVille('${v.Ville.replace(/'/g,"\\'")}')">
       ${v.Ville} <span style="opacity:.6;margin-left:4px;">×</span>
     </div>`
@@ -225,14 +225,14 @@ function renderChips() {
 function renderKPICards() {
   const el = document.getElementById('kpiCards');
   if (!el) return;
-  if (!_selectedVilles.length) {
+  if (!selectedCities.length) {
     el.innerHTML = '<div style="color:var(--text3);font-size:13px;padding:12px 0;">Sélectionnez des villes pour afficher les KPIs.</div>';
     return;
   }
-  const avgPrix = Math.round(_selectedVilles.reduce((s, v) => s + v.Prix_m2, 0) / _selectedVilles.length);
-  const avgLoyer = (_selectedVilles.reduce((s, v) => s + v.Loyer_m2_Apt, 0) / _selectedVilles.length).toFixed(2);
-  const avgTension = (_selectedVilles.reduce((s, v) => s + v.Tension, 0) / _selectedVilles.length).toFixed(1);
-  const avgAttr = (_selectedVilles.reduce((s, v) => s + v.Attractivite, 0) / _selectedVilles.length).toFixed(1);
+  const avgPrix = Math.round(selectedCities.reduce((s, v) => s + v.Prix_m2, 0) / selectedCities.length);
+  const avgLoyer = (selectedCities.reduce((s, v) => s + v.Loyer_m2_Apt, 0) / selectedCities.length).toFixed(2);
+  const avgTension = (selectedCities.reduce((s, v) => s + v.Tension, 0) / selectedCities.length).toFixed(1);
+  const avgAttr = (selectedCities.reduce((s, v) => s + v.Attractivite, 0) / selectedCities.length).toFixed(1);
 
   el.innerHTML = [
     { label: 'Prix m² moyen', value: `${fmt(avgPrix)} €`, sub: 'appartement', icon: '🏷️' },
@@ -253,7 +253,7 @@ function renderKPICards() {
 function renderRanking() {
   const el = document.getElementById('attrRanking');
   if (!el) return;
-  const source = _selectedVilles.length ? _selectedVilles : VILLES.slice(0, 15);
+  const source = selectedCities.length ? selectedCities : VILLES.slice(0, 15);
   const sorted = [...source].sort((a, b) => b.Attractivite - a.Attractivite).slice(0, 12);
   const max = sorted[0]?.Attractivite || 10;
   el.innerHTML = sorted.map((v, i) => `
@@ -281,7 +281,7 @@ function renderTable() {
   const tbody  = document.getElementById('tableBody');
   if (!table || !tbody) return;
 
-  if (!_selectedVilles.length) {
+  if (!selectedCities.length) {
     table.style.display = 'none';
     if (empty) empty.style.display = 'block';
     return;
@@ -290,7 +290,7 @@ function renderTable() {
   if (empty) empty.style.display = 'none';
 
   // Sort
-  let rows = [..._selectedVilles];
+  let rows = [...selectedCities];
   if (_sortCol) {
     rows.sort((a, b) => {
       const va = a[_sortCol] ?? a['2022'];
