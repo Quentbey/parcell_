@@ -16,13 +16,15 @@ let _sortAsc = true;
 async function loadCitiesFromSupabase() {
   if (_citiesLoaded) return VILLES;
   try {
-    const { data, error } = await supabaseClient
-      .from('cities')
-      .select('*')
-      .eq('actif', true)
-      .order('nom', { ascending: true });
-
-    if (error) throw error;
+    // Utilise fetch() directement pour éviter les blocages du SDK avec les clés sb_publishable_*
+    const SUPA_URL = supabaseClient.supabaseUrl;
+    const SUPA_KEY = supabaseClient.supabaseKey;
+    const resp = await fetch(
+      `${SUPA_URL}/rest/v1/cities?select=*&actif=eq.true&order=nom.asc`,
+      { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` } }
+    );
+    if (!resp.ok) throw new Error(`Supabase HTTP ${resp.status}`);
+    const data = await resp.json();
 
     VILLES = (data || []).map(c => ({
       // Identifiants
