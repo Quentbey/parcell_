@@ -63,7 +63,7 @@ function onDeptChange(){renderChips();}
 function filterCities(){
   const q=document.getElementById('citySearch').value.trim();
   if(!q) return;
-  const m=CITIES.find(c=>c.Ville.toLowerCase()===q.toLowerCase());
+  const m=VILLES.find(c=>c.Ville.toLowerCase()===q.toLowerCase());
   if(m&&!selectedCities.includes(m.Ville)){selectedCities.push(m.Ville);document.getElementById('citySearch').value='';renderAll();}
 }
 function renderChips(){
@@ -73,7 +73,7 @@ function renderChips(){
   w.innerHTML=selectedCities.map(v=>`<div class="chip" onclick="toggleCity('${v.Ville.replace(/'/g,"\\'")}')">  ${v.Ville} <span>✕</span></div>`).join('');
 }
 function renderKPIs(){
-  const sel=CITIES.filter(c=>selectedCities.includes(c.Ville));
+  const sel=VILLES.filter(c=>selectedCities.includes(c.Ville));
   if(!sel.length){document.getElementById('kpiCards').innerHTML='';return;}
   const avgPrix=Math.round(sel.reduce((s,c)=>s+c.Prix_m2,0)/sel.length);
   const avgLoyer=Math.round(sel.reduce((s,c)=>s+c.Loyer_m2_Apt,0)/sel.length);
@@ -124,7 +124,7 @@ async function updateMapLayers(){
       quartierLayers.push(m);
     });return;
   }
-  for(const c of CITIES){
+  for(const c of VILLES){
     const isSel=selectedCities.includes(c.Ville);
     const color=isSel?COLORS[selectedCities.indexOf(c.Ville)%COLORS.length]:'#3a4560';
     const rentab=((c.Loyer_m2_Apt*12)/c.Prix_m2*100).toFixed(1);
@@ -158,14 +158,14 @@ function useQuartierInSim(code){
 
 // ═══ TABLE ═══
 function renderAttrRanking(){
-  const sel=CITIES.filter(c=>selectedCities.includes(c.Ville)).sort((a,b)=>b.Attractivite-a.Attractivite);
+  const sel=VILLES.filter(c=>selectedCities.includes(c.Ville)).sort((a,b)=>b.Attractivite-a.Attractivite);
   document.getElementById('attrRanking').innerHTML=sel.length
     ?sel.map((c,i)=>`<div class="progress-row" style="animation:fadeUp 0.4s ${i*0.05}s ease both;opacity:0;animation-fill-mode:forwards"><div class="progress-name">${i===0?'🥇':i===1?'🥈':i===2?'🥉':'·'} ${c.Ville}</div><div class="progress-track"><div class="progress-fill" style="width:${c.Attractivite*10}%"></div></div><div class="progress-val">${c.Attractivite}/10</div></div>`).join('')
     :'<p style="color:var(--text3);font-size:13px;padding:10px 0;">Sélectionnez des villes.</p>';
 }
 function sortByCol(k){if(sortKey===k)sortAsc=!sortAsc;else{sortKey=k;sortAsc=false;}renderTable();}
 function renderTable(){
-  let data=CITIES.filter(c=>selectedCities.includes(c.Ville));
+  let data=VILLES.filter(c=>selectedCities.includes(c.Ville));
   data.sort((a,b)=>{const va=a[sortKey],vb=b[sortKey];if(typeof va==='string')return sortAsc?va.localeCompare(vb):vb.localeCompare(va);return sortAsc?va-vb:vb-va;});
   const empty=document.getElementById('tableEmpty'),table=document.getElementById('mainTable');
   if(!data.length){table.style.display='none';empty.style.display='block';return;}
@@ -183,8 +183,8 @@ function renderTable(){
 
 // ═══ CHARTS ═══
 const YEARS=[1970,1982,1990,1999,2011,2015,2022];
-function renderPopChart(){const sel=CITIES.filter(c=>selectedCities.includes(c.Ville));const ctx=document.getElementById('popChart').getContext('2d');if(popChart)popChart.destroy();popChart=new Chart(ctx,{type:'line',data:{labels:YEARS,datasets:sel.map((c,i)=>({label:c.Ville,data:YEARS.map(y=>c[y.toString()]),borderColor:COLORS[i%COLORS.length],backgroundColor:COLORS[i%COLORS.length]+'15',borderWidth:2.5,pointRadius:3,tension:0.4,fill:false}))},options:{responsive:true,plugins:{legend:{labels:{color:'#7e8a9e',font:{family:'DM Sans',size:11}}}},scales:{x:{grid:{color:'#141829'},ticks:{color:'#4e5a6e'}},y:{grid:{color:'#141829'},ticks:{color:'#4e5a6e',callback:v=>v>=1e6?`${(v/1e6).toFixed(1)}M`:v>=1e3?`${Math.round(v/1e3)}k`:v}}}}});}
-function renderSalPriceChart(){const sel=CITIES.filter(c=>selectedCities.includes(c.Ville));const ctx=document.getElementById('salPriceChart').getContext('2d');if(salPriceChart)salPriceChart.destroy();salPriceChart=new Chart(ctx,{type:'bar',data:{labels:sel.map(c=>c.Ville),datasets:[{label:'Prix m² (€)',data:sel.map(c=>c.Prix_m2),backgroundColor:COLORS.map(c=>c+'99'),borderRadius:5,borderSkipped:false},{label:'Salaire médian (€)',data:sel.map(c=>c.Salaire_Med),backgroundColor:'#2dd4bf44',borderRadius:5,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{labels:{color:'#7e8a9e',font:{family:'DM Sans',size:11}}}},scales:{x:{grid:{display:false},ticks:{color:'#4e5a6e'}},y:{grid:{color:'#141829'},ticks:{color:'#4e5a6e'}}}}});}
+function renderPopChart(){const sel=VILLES.filter(c=>selectedCities.includes(c.Ville));const ctx=document.getElementById('popChart').getContext('2d');if(popChart)popChart.destroy();popChart=new Chart(ctx,{type:'line',data:{labels:YEARS,datasets:sel.map((c,i)=>({label:c.Ville,data:YEARS.map(y=>c[y.toString()]),borderColor:COLORS[i%COLORS.length],backgroundColor:COLORS[i%COLORS.length]+'15',borderWidth:2.5,pointRadius:3,tension:0.4,fill:false}))},options:{responsive:true,plugins:{legend:{labels:{color:'#7e8a9e',font:{family:'DM Sans',size:11}}}},scales:{x:{grid:{color:'#141829'},ticks:{color:'#4e5a6e'}},y:{grid:{color:'#141829'},ticks:{color:'#4e5a6e',callback:v=>v>=1e6?`${(v/1e6).toFixed(1)}M`:v>=1e3?`${Math.round(v/1e3)}k`:v}}}}});}
+function renderSalPriceChart(){const sel=VILLES.filter(c=>selectedCities.includes(c.Ville));const ctx=document.getElementById('salPriceChart').getContext('2d');if(salPriceChart)salPriceChart.destroy();salPriceChart=new Chart(ctx,{type:'bar',data:{labels:sel.map(c=>c.Ville),datasets:[{label:'Prix m² (€)',data:sel.map(c=>c.Prix_m2),backgroundColor:COLORS.map(c=>c+'99'),borderRadius:5,borderSkipped:false},{label:'Salaire médian (€)',data:sel.map(c=>c.Salaire_Med),backgroundColor:'#2dd4bf44',borderRadius:5,borderSkipped:false}]},options:{responsive:true,plugins:{legend:{labels:{color:'#7e8a9e',font:{family:'DM Sans',size:11}}}},scales:{x:{grid:{display:false},ticks:{color:'#4e5a6e'}},y:{grid:{color:'#141829'},ticks:{color:'#4e5a6e'}}}}});}
 
 // ═══ SIMULATEUR ═══
 function setType(t){simType=t;document.getElementById('btnApt').classList.toggle('active',t==='Apt');document.getElementById('btnMsn').classList.toggle('active',t==='Msn');updateSimLoyer();}
@@ -192,7 +192,7 @@ function setMeuble(v){simMeuble=v;document.getElementById('btnMeuble').classList
 
 function onSimVilleChange(){
   const ville=document.getElementById('simVille').value;
-  const city=CITIES.find(c=>c.Ville===ville);
+  const city=VILLES.find(c=>c.Ville===ville);
   const qBlock=document.getElementById('quartierBlock'),qSel=document.getElementById('simQuartier');
   if(city&&city.hasQuartiers){qBlock.style.display='block';qSel.innerHTML=LYON_QUARTIERS.map(q=>`<option value="${q.code}">${q.nom}</option>`).join('');}
   else{qBlock.style.display='none';qSel.innerHTML='';}
@@ -201,7 +201,7 @@ function onSimVilleChange(){
 
 function updateSimLoyer(){
   const ville=document.getElementById('simVille').value;
-  const city=CITIES.find(c=>c.Ville===ville);if(!city)return;
+  const city=VILLES.find(c=>c.Ville===ville);if(!city)return;
   const qCode=document.getElementById('simQuartier').value;
   let lyrBase,prixRef,tension;
   if(city.hasQuartiers&&qCode){
@@ -267,7 +267,7 @@ function calcSim(){
 function openDrawer(type){
   if(drawerChart){drawerChart.destroy();drawerChart=null;}
   const ville=document.getElementById('simVille').value;
-  const city=CITIES.find(c=>c.Ville===ville);
+  const city=VILLES.find(c=>c.Ville===ville);
   const qCode=document.getElementById('simQuartier').value;
   const locLabel=city?.hasQuartiers&&qCode?`${ville} — ${qCode}`:ville;
   const dt=document.getElementById('drawerTitle'),ds=document.getElementById('drawerSubtitle'),dc=document.getElementById('drawerContent');
@@ -422,12 +422,12 @@ function applyExtracted(data){
     } else {
       // Cherche ville par préfixe CP (2 premiers chiffres = département)
       const dept2=cp.slice(0,2);
-      const match=CITIES.find(c=>c.insee&&c.insee.slice(0,2)===dept2);
+      const match=VILLES.find(c=>c.insee&&c.insee.slice(0,2)===dept2);
       if(match&&!villeDetectee){villeDetectee=match.Ville;}
     }
   }
   if(data.ville&&!villeDetectee){
-    const match=CITIES.find(c=>c.Ville.toLowerCase()===data.ville.toLowerCase()
+    const match=VILLES.find(c=>c.Ville.toLowerCase()===data.ville.toLowerCase()
       ||data.ville.toLowerCase().includes(c.Ville.toLowerCase()));
     if(match){villeDetectee=match.Ville;}
   }
@@ -569,7 +569,7 @@ function parseBasic(txt){
   if(/meubl/i.test(txt))data.meuble=true;
   const eqKeys=['parking','garage','balcon','terrasse','jardin','cave','cellier','gardien','digicode','rénové','neuf'];
   eqKeys.forEach(k=>{if(new RegExp(k,'i').test(txt))data.equipements.push(k);});
-  const cityM=CITIES.find(c=>new RegExp('\\b'+c.Ville.split('-')[0]+'\\b','i').test(txt));
+  const cityM=VILLES.find(c=>new RegExp('\\b'+c.Ville.split('-')[0]+'\\b','i').test(txt));
   if(cityM)data.ville=cityM.Ville;
   return data;
 }
