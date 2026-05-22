@@ -36,6 +36,8 @@ async function loadCitiesFromSupabase() {
       Région: c.region,
       lat: parseFloat(c.lat) || 0,
       lon: parseFloat(c.lon) || 0,
+      Lat: parseFloat(c.lat) || 0,
+      Lon: parseFloat(c.lon) || 0,
       // Populations
       '2022': c.pop_2022 || 0,
       Pop_2015: c.pop_2015 || 0,
@@ -53,6 +55,8 @@ async function loadCitiesFromSupabase() {
       Loyer_m2_Msn: parseFloat(c.loyer_m2_msn) || 0,
       // Socio-éco
       Salaire_Median: parseFloat(c.salaire_median) || 0,
+      Salaire_Med: parseFloat(c.salaire_median) || 0,
+      insee: c.code_insee || '',
       Age_Median: parseFloat(c.age_median) || 0,
       // Scores
       Attractivite: parseFloat(c.attractivite) || 0,
@@ -183,16 +187,15 @@ function hideCityDropdown() {
 }
 
 function addVille(nom) {
-  const v = VILLES.find(x => x.Ville === nom);
-  if (!v) return;
-  if (selectedCities.find(x => x.Ville === nom)) return; // déjà ajoutée
-  selectedCities.push(v);
-  renderAnalyseView();
+  if (!VILLES.find(x => x.Ville === nom)) return;
+  if (selectedCities.includes(nom)) return; // déjà ajoutée
+  selectedCities.push(nom);
+  renderAll();
 }
 
 function removeVille(nom) {
-  selectedCities = selectedCities.filter(v => v.Ville !== nom);
-  renderAnalyseView();
+  selectedCities = selectedCities.filter(v => v !== nom);
+  renderAll();
 }
 
 // ── Render complet de la vue Analyse ─────────────────────────
