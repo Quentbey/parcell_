@@ -67,10 +67,10 @@ function filterCities(){
   if(m&&!selectedCities.includes(m.Ville)){selectedCities.push(m.Ville);document.getElementById('citySearch').value='';renderAll();}
 }
 function renderChips(){
-  const sec=document.getElementById('chipsSection'),w=document.getElementById('chipsWrap');
-  if(!selectedCities.length){sec.style.display='none';return;}
-  sec.style.display='block';
-  w.innerHTML=selectedCities.map(v=>`<div class="chip" onclick="toggleCity('${v}')">${v} <span>✕</span></div>`).join('');
+  const w=document.getElementById('chipsWrap');
+  if(!w)return;
+  if(!selectedCities.length){w.innerHTML='';return;}
+  w.innerHTML=selectedCities.map(v=>`<div class="chip" onclick="toggleCity('${v.Ville.replace(/'/g,"\\'")}')">  ${v.Ville} <span>✕</span></div>`).join('');
 }
 function renderKPIs(){
   const sel=CITIES.filter(c=>selectedCities.includes(c.Ville));
