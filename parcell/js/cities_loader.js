@@ -12,6 +12,47 @@ let selectedCities = [];   // villes sélectionnées dans l'onglet Analyse
 let _sortCol = null;
 let _sortAsc = true;
 
+// ── Constantes & état global (anciennement dans data.js, désormais retiré) ──
+const COLORS = ['#c9a84c','#2dd4bf','#818cf8','#f472b6','#34d399','#fb923c','#60a5fa','#a78bfa','#4ade80','#fbbf24','#e879f9','#38bdf8'];
+
+// Bonus équipements sur le loyer (mode Pro)
+const OPT_BONUS = { parking:0.05, balcon:0.03, jardin:0.06, cave:0.01, digicode:0.01, renove:0.04 };
+
+// Quartiers détaillés de Lyon
+const LYON_QUARTIERS = [
+  {code:"Lyon 1er",nom:"Lyon 1er — Presqu'île / Terreaux",   prix_m2:5500,loyer_apt:20,loyer_msn:18,lat:45.7676,lon:4.8344,Tension:9.5,cp:"69001"},
+  {code:"Lyon 2e", nom:"Lyon 2e — Ainay / Bellecour",         prix_m2:5300,loyer_apt:22,loyer_msn:19,lat:45.7489,lon:4.8289,Tension:9.2,cp:"69002"},
+  {code:"Lyon 3e", nom:"Lyon 3e — Part-Dieu / Guillotière",   prix_m2:4700,loyer_apt:19,loyer_msn:17,lat:45.7554,lon:4.8548,Tension:9.0,cp:"69003"},
+  {code:"Lyon 4e", nom:"Lyon 4e — Croix-Rousse",              prix_m2:5600,loyer_apt:21,loyer_msn:18,lat:45.7786,lon:4.8267,Tension:9.6,cp:"69004"},
+  {code:"Lyon 5e", nom:"Lyon 5e — Vieux-Lyon / Saint-Just",   prix_m2:5100,loyer_apt:19,loyer_msn:17,lat:45.7612,lon:4.8185,Tension:9.0,cp:"69005"},
+  {code:"Lyon 6e", nom:"Lyon 6e — Tête d'Or / Brotteaux",     prix_m2:6500,loyer_apt:22,loyer_msn:20,lat:45.7718,lon:4.8530,Tension:9.8,cp:"69006"},
+  {code:"Lyon 7e", nom:"Lyon 7e — Gerland / Jean Macé",       prix_m2:4500,loyer_apt:19,loyer_msn:17,lat:45.7327,lon:4.8463,Tension:8.8,cp:"69007"},
+  {code:"Lyon 8e", nom:"Lyon 8e — Monplaisir / Mermoz",       prix_m2:4100,loyer_apt:16,loyer_msn:14,lat:45.7366,lon:4.8713,Tension:8.2,cp:"69008"},
+  {code:"Lyon 9e", nom:"Lyon 9e — Vaise / La Duchère",        prix_m2:3800,loyer_apt:15,loyer_msn:13,lat:45.7797,lon:4.7978,Tension:8.0,cp:"69009"},
+];
+
+// Mapping code postal → quartier Lyon
+const CP_TO_QUARTIER = {};
+LYON_QUARTIERS.forEach(q => { CP_TO_QUARTIER[q.cp] = q.code; });
+
+// État simulateur
+let simType = 'Apt', simMeuble = true, simMode = 'simple';
+let activeOpts = new Set();
+let simData = {};
+
+// État tri tableau
+let sortKey = 'Attractivite', sortAsc = false;
+
+// Instances Chart.js
+let popChart = null, salPriceChart = null, simChart = null, drawerChart = null;
+
+// État carte Leaflet
+let leafletMap = null;
+let leafletPolygons = [];
+let leafletMarkers = [];
+let quartierLayers = [];
+let pgCache = {};   // cache des contours géographiques (geo.api.gouv.fr)
+
 // ── Chargement depuis Supabase ────────────────────────────────
 async function loadCitiesFromSupabase() {
   if (_citiesLoaded) return VILLES;
@@ -64,6 +105,8 @@ async function loadCitiesFromSupabase() {
       // Meta
       source_prix: c.source_prix || 'DVF',
       source_loyer: c.source_loyer || 'estimé',
+      // Quartiers détaillés disponibles uniquement pour Lyon
+      hasQuartiers: c.nom === 'Lyon',
     }));
 
     // Indexation par région et département

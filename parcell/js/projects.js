@@ -7,7 +7,7 @@ let savedProjects = [];
 // ── Charge les projets depuis Supabase ──
 async function loadProjects() {
   if (!currentUser) return [];
-  const { data, error } = await supabase
+  const { data, error } = await supabaseClient
     .from('projects')
     .select('*')
     .eq('user_id', currentUser.id)
@@ -62,7 +62,7 @@ async function saveProjectToDB(projectData) {
 
 // ── Met à jour le statut d'un projet ──
 async function updateProjectStatus(projectId, status) {
-  const { error } = await supabase
+  const { error } = await supabaseClient
     .from('projects')
     .update({ status, updated_at: new Date().toISOString() })
     .eq('id', projectId)
@@ -75,7 +75,7 @@ async function updateProjectStatus(projectId, status) {
 
 // ── Supprime un projet ──
 async function deleteProjectFromDB(projectId) {
-  const { error } = await supabase
+  const { error } = await supabaseClient
     .from('projects')
     .delete()
     .eq('id', projectId)
@@ -94,7 +94,7 @@ async function shareProject(projectId) {
 
   // Crée un token de partage public dans Supabase
   const shareToken = crypto.randomUUID();
-  const { error } = await supabase
+  const { error } = await supabaseClient
     .from('projects')
     .update({ share_token: shareToken, shared: true, updated_at: new Date().toISOString() })
     .eq('id', projectId);
