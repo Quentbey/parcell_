@@ -1,3 +1,44 @@
+// ── GLOBALS (anciennement dans data.js) ──
+let sortKey = 'Attractivite';
+let sortAsc = false;
+let simMode = 'simple';
+let simType = 'Apt';
+let simMeuble = true;
+let activeOpts = new Set();
+let simData = {};
+let pgCache = {};
+let leafletMap = null;
+let leafletPolygons = [];
+let leafletMarkers = [];
+let quartierLayers = [];
+let popChart = null;
+let salPriceChart = null;
+let drawerChart = null;
+
+const COLORS = ['#2dd4bf','#c9a84c','#818cf8','#fb923c','#34d399','#f87171','#a78bfa','#38bdf8','#fbbf24','#4ade80'];
+
+const OPT_BONUS = {
+  parking: 0.05, balcon: 0.03, jardin: 0.05,
+  cave: 0.02, digicode: 0.01, renove: 0.08
+};
+
+const LYON_QUARTIERS = [
+  {code:'Lyon 1er', nom:'Lyon 1er',  lat:45.767, lon:4.834, prix_m2:5500, loyer_apt:15.0, loyer_msn:14.0, Tension:8},
+  {code:'Lyon 2e',  nom:'Lyon 2e',   lat:45.750, lon:4.829, prix_m2:5800, loyer_apt:15.5, loyer_msn:14.5, Tension:8},
+  {code:'Lyon 3e',  nom:'Lyon 3e',   lat:45.757, lon:4.850, prix_m2:5200, loyer_apt:14.5, loyer_msn:13.5, Tension:7},
+  {code:'Lyon 4e',  nom:'Lyon 4e',   lat:45.778, lon:4.825, prix_m2:4800, loyer_apt:13.5, loyer_msn:12.5, Tension:7},
+  {code:'Lyon 5e',  nom:'Lyon 5e',   lat:45.759, lon:4.818, prix_m2:5000, loyer_apt:14.0, loyer_msn:13.0, Tension:7},
+  {code:'Lyon 6e',  nom:'Lyon 6e',   lat:45.771, lon:4.846, prix_m2:6500, loyer_apt:16.0, loyer_msn:15.0, Tension:9},
+  {code:'Lyon 7e',  nom:'Lyon 7e',   lat:45.736, lon:4.843, prix_m2:4500, loyer_apt:13.0, loyer_msn:12.0, Tension:8},
+  {code:'Lyon 8e',  nom:'Lyon 8e',   lat:45.727, lon:4.857, prix_m2:4200, loyer_apt:12.5, loyer_msn:11.5, Tension:6},
+  {code:'Lyon 9e',  nom:'Lyon 9e',   lat:45.778, lon:4.803, prix_m2:4000, loyer_apt:12.0, loyer_msn:11.0, Tension:6}
+];
+
+const CP_TO_QUARTIER = {
+  '69001':'Lyon 1er','69002':'Lyon 2e','69003':'Lyon 3e','69004':'Lyon 4e',
+  '69005':'Lyon 5e','69006':'Lyon 6e','69007':'Lyon 7e','69008':'Lyon 8e','69009':'Lyon 9e'
+};
+
 // simulator.js — Calculs financiers + import IA + drawers
 
 // ═══ MODE SIMPLE / PRO ═══
@@ -70,7 +111,7 @@ function renderChips(){
   const w=document.getElementById('chipsWrap');
   if(!w)return;
   if(!selectedCities.length){w.innerHTML='';return;}
-  w.innerHTML=selectedCities.map(v=>`<div class="chip" onclick="toggleCity('${v.replace(/'/g,"\\'")}')">  ${v.Ville} <span>✕</span></div>`).join('');
+  w.innerHTML=selectedCities.map(v=>`<div class="chip" onclick="toggleCity('${v.replace(/'/g,"\\'")}')">  ${v} <span>✕</span></div>`).join('');
 }
 function renderKPIs(){
   const sel=VILLES.filter(c=>selectedCities.includes(c.Ville));
