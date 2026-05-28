@@ -3,368 +3,149 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Parcell · Simulateur de rentabilité locative gratuit | Investissement immobilier</title>
-<meta name="description" content="Simulez la rentabilité réelle de votre investissement locatif : rendement net, mensualité de crédit, cashflow. Gratuit, basé sur les vrais prix de 775 villes françaises.">
-<link rel="canonical" href="https://parcell.fr/">
-<meta name="robots" content="index,follow">
-<meta property="og:type" content="website">
-<meta property="og:title" content="Parcell · Simulateur de rentabilité locative gratuit">
-<meta property="og:description" content="Investissez avec des chiffres clairs : rendement, mensualité et cashflow de votre projet locatif en 30 secondes.">
-<meta property="og:locale" content="fr_FR">
-<meta property="og:url" content="https://parcell.fr/">
-<meta name="twitter:card" content="summary_large_image">
-
+<title>Parcell · Simulateur et analyse immobilière</title>
+<meta name="description" content="Simulateur de rentabilité locative et analyse comparative de 775 villes françaises.">
+<meta name="robots" content="noindex,follow">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="css/site.css">
+<link rel="stylesheet" href="css/main.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
-
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"Parcell","applicationCategory":"FinanceApplication","operatingSystem":"Web","description":"Simulateur de rentabilité locative et outil d'analyse immobilière sur 775 villes françaises.","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
-</script>
-<script type="application/ld+json">
-{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
-{"@type":"Question","name":"Comment calculer la rentabilité d'un investissement locatif ?","acceptedAnswer":{"@type":"Answer","text":"La rentabilité brute = (loyer annuel ÷ prix d'achat) × 100. La rentabilité nette tient compte des charges, de la taxe foncière, de la vacance locative et des frais de gestion. Le simulateur Parcell calcule les deux automatiquement."}},
-{"@type":"Question","name":"Le simulateur Parcell est-il gratuit ?","acceptedAnswer":{"@type":"Answer","text":"Oui, le simulateur de rentabilité est entièrement gratuit et ne nécessite pas de compte pour être utilisé."}},
-{"@type":"Question","name":"Sur quelles données reposent les estimations ?","acceptedAnswer":{"@type":"Answer","text":"Parcell s'appuie sur les prix au m² et les loyers de 775 villes françaises pour pré-remplir et fiabiliser vos simulations."}}
-]}
-</script>
+<style>
+  body{background:var(--bg);}
+  .page-header{padding:28px 0 18px;border-bottom:1px solid var(--border);margin-bottom:22px;}
+  .page-header h1{font-family:'Outfit',sans-serif;font-size:clamp(22px,3.2vw,30px);font-weight:800;letter-spacing:-0.02em;margin:8px 0 6px;}
+  .page-header .ph-desc{color:var(--text2);font-size:14px;max-width:780px;}
+  .nav-links a.active{color:var(--text);}
+  .nav-links a.active::after{content:'';display:block;height:2px;margin-top:4px;background:linear-gradient(90deg,var(--gold),var(--teal));border-radius:2px;}
+  #appRoot .hero{padding:0;border:0;background:none;}
+  .nav-cta .nav-user{margin-left:6px;}
+  .site-footer{margin-top:48px;padding:32px 0 20px;}
+  .site-footer .footer-bottom{border-top:none;padding-top:0;}
+</style>
 </head>
 <body>
 <div class="scroll-progress" id="scrollProgress"></div>
 <div class="ambient ambient-1" id="amb1"></div>
 <div class="ambient ambient-2" id="amb2"></div>
-
-<!-- ══ NAV ══ -->
-<header class="site-nav">
-  <div class="site-nav-inner">
-    <a class="brand" href="/" aria-label="Parcell, accueil">
-      <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
-      <span class="brand-name">Parc<span>ell</span></span>
-    </a>
-    <nav class="nav-links" id="navLinks" aria-label="Navigation principale">
-      <a href="/" class="active">Accueil</a>
-      <a href="/app.html#simulateur">Simulateur</a>
-      <a href="/app.html#analyse">Analyse des villes</a>
-      <a href="#guides">Guides</a>
-    </nav>
-    <div class="nav-cta">
-      <a href="/app.html" class="btn btn-ghost">Connexion</a>
-      <a href="/app.html#simulateur" class="btn btn-primary">Lancer le simulateur</a>
-      <button class="nav-burger" id="navBurger" aria-label="Ouvrir le menu" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
+<div id="authWall" style="display:none;"></div>
+<div id="appRoot" style="display:none;">
+  <header class="site-nav">
+    <div class="site-nav-inner">
+      <a class="brand" href="/" aria-label="Parcell, accueil">
+        <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+        <span class="brand-name">Parc<span>ell</span></span>
+      </a>
+      <nav class="nav-links" id="navLinks" aria-label="Navigation principale">
+        <a href="/">Accueil</a>
+        <a href="#simulateur" class="app-nav" data-tab="simulateur">Simulateur</a>
+        <a href="#analyse" class="app-nav" data-tab="analyse">Analyse des villes</a>
+        <a href="#compte" class="app-nav" data-tab="compte">Mes projets</a>
+        <a href="/#guides">Guides</a>
+      </nav>
+      <div class="nav-cta">
+        <div class="nav-user">
+          <span class="nav-user-name" id="navUserName" onclick="toggleUserDropdown()"></span>
+          <div class="nav-avatar" id="navAvatar" onclick="toggleUserDropdown()"></div>
+          <div class="user-dropdown" id="userDropdown">
+            <div class="ud-header">
+              <div class="ud-name" id="ddName">—</div>
+              <div class="ud-email" id="ddEmail">—</div>
+              <span class="ud-plan">⭐ Plan Gratuit</span>
+            </div>
+            <div class="ud-item" onclick="switchTab('compte',null);closeUserDropdown();updateActiveNav('compte')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Mon profil
+            </div>
+            <div class="ud-item" onclick="switchTab('compte',null);showCompteSection('projets');closeUserDropdown();updateActiveNav('compte')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>Mes projets
+            </div>
+            <div class="ud-item" onclick="switchTab('compte',null);showCompteSection('notifs');closeUserDropdown();updateActiveNav('compte')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Notifications
+              <span id="navNotifBadge" style="display:none;margin-left:auto;background:var(--teal);color:#0a0d14;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;"></span>
+            </div>
+            <div class="ud-divider"></div>
+            <div class="ud-item ud-logout" onclick="signOut()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Se déconnecter
+            </div>
+          </div>
+        </div>
+        <button class="nav-burger" id="navBurger" aria-label="Ouvrir le menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+      </div>
+    </div>
+  </header>
+  <main class="wrap">
+    <div class="page-header" id="pageHeader">
+      <span class="eyebrow"><span class="dot"></span> <span id="phEyebrow">Outil</span></span>
+      <h1 id="phTitle">Analyse des villes</h1>
+      <p class="ph-desc" id="phDesc">Comparez prix, loyers, tension locative et attractivité de 775 villes françaises, côte à côte.</p>
+    </div>
+    <div id="tabContainer"></div>
+  </main>
+  <div class="detail-overlay" id="detailOverlay" onclick="closeDrawer()"></div>
+  <div class="detail-drawer" id="detailDrawer">
+    <div class="drawer-close" onclick="closeDrawer()">✕</div>
+    <div class="drawer-title" id="drawerTitle">—</div>
+    <div class="drawer-subtitle" id="drawerSubtitle">—</div>
+    <div id="drawerContent"></div>
+  </div>
+  <div class="modal-overlay" id="saveModal" onclick="closeSaveModal(event)">
+    <div class="modal-box">
+      <div class="modal-title">💾 Sauvegarder le projet</div>
+      <div class="modal-sub">Ce projet sera accessible dans votre espace personnel.</div>
+      <div class="modal-field"><label>Nom du projet</label><input type="text" id="saveProjectName" placeholder="Ex : Appart Lyon 3e, Part-Dieu"></div>
+      <div class="modal-field"><label>Note (optionnel)</label><textarea id="saveProjectNote" rows="2" placeholder="Ex : Bonne affaire, à voir avec le banquier…"></textarea></div>
+      <div class="modal-actions">
+        <button class="modal-btn-cancel" onclick="closeSaveModal()">Annuler</button>
+        <button class="modal-btn-save" onclick="saveProject()">Sauvegarder</button>
+      </div>
     </div>
   </div>
-</header>
-
-<main>
-<!-- ══ HERO ══ -->
-<section class="hero">
-  <div class="wrap">
-    <span class="eyebrow reveal"><span class="dot"></span> Simulateur gratuit · 775 villes</span>
-    <h1 class="reveal d1">La rentabilité locative,<br><span class="grad">en chiffres clairs et fiables.</span></h1>
-    <p class="lead reveal d2">Simulez le rendement réel de votre projet locatif, calculez la mensualité et le cashflow, et comparez 775 villes françaises en quelques secondes.</p>
-    <div class="hero-actions reveal d3">
-      <a href="/app.html#simulateur" class="btn btn-primary btn-lg"><svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg> Lancer le simulateur</a>
-      <a href="#comment" class="btn btn-ghost btn-lg">Comment ça marche</a>
-    </div>
-    <p class="hero-trust reveal d3">Gratuit · Sans inscription · Données réelles sur <strong>775 villes françaises</strong></p>
-
-    <!-- Mini-simulateur interactif -->
-    <div class="sim-preview reveal d3 parallax" data-parallax="-0.12">
-      <div class="sim-preview-head">
-        <span class="loc">Estimez en direct</span>
-        <span class="tag">Mini-simulateur</span>
-      </div>
-      <div class="mini-form">
-        <label>Prix d'achat (€)<input id="mPrix" type="number" inputmode="numeric" min="0" step="1000" value="230000"></label>
-        <label>Loyer mensuel (€)<input id="mLoyer" type="number" inputmode="numeric" min="0" step="10" value="850"></label>
-      </div>
-      <div class="kpi-row mini">
-        <div class="kpi"><div class="k-label">Rendement brut</div><div class="k-val k-teal" id="mBrut">4,4 %</div></div>
-        <div class="kpi"><div class="k-label">Rendement net estimé</div><div class="k-val k-gold" id="mNet">3,2 %</div></div>
-        <div class="kpi"><div class="k-label">Loyers par an</div><div class="k-val" id="mAn">10 200 €</div></div>
-      </div>
-      <a href="/app.html#simulateur" class="btn btn-primary sim-cta"><svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg> Simulation complète (crédit, cashflow, fiscalité)</a>
-    </div>
+  <div class="save-toast" id="saveToast">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <span id="toastMsg">✓</span>
   </div>
-</section>
-
-<!-- ══ BANDEAU VILLES (décoratif) ══ -->
-<div class="city-marquee" aria-hidden="true">
-  <div class="marquee-track">
-    <span>Lyon</span><span>Saint-Étienne</span><span>Bordeaux</span><span>Nantes</span><span>Lille</span><span>Roanne</span><span>Toulouse</span><span>Rennes</span><span>Montpellier</span><span>Grenoble</span><span>Angers</span><span>Le Mans</span>
-    <span>Lyon</span><span>Saint-Étienne</span><span>Bordeaux</span><span>Nantes</span><span>Lille</span><span>Roanne</span><span>Toulouse</span><span>Rennes</span><span>Montpellier</span><span>Grenoble</span><span>Angers</span><span>Le Mans</span>
-  </div>
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-bottom">
+        <span>© 2026 Parcell · <a href="/">Accueil</a> · <a href="/mentionslegales.html">Mentions légales</a> · <a href="/confidentialite.html">Confidentialité</a> · <a href="/cgu.html">CGU</a></span>
+        <span>Données indicatives, ne constituent pas un conseil en investissement.</span>
+      </div>
+    </div>
+  </footer>
 </div>
-
-<!-- ══ COMMENT ÇA MARCHE ══ -->
-<section class="section section-alt" id="comment">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <h2>Une simulation fiable en 3 étapes</h2>
-      <p>Pas besoin d'être expert. Le simulateur fait les calculs financiers à votre place.</p>
-    </div>
-    <div class="steps">
-      <article class="step reveal"><div class="step-num">1</div><h3>Choisissez la ville et le bien</h3><p>Sélectionnez parmi 775 villes : prix au m² et loyers de référence sont pré-remplis automatiquement.</p></article>
-      <article class="step reveal d1"><div class="step-num">2</div><h3>Ajustez vos paramètres</h3><p>Surface, prix d'achat, apport, taux et durée du crédit, charges, vacance locative, meublé ou non.</p></article>
-      <article class="step reveal d2"><div class="step-num">3</div><h3>Obtenez vos indicateurs</h3><p>Rendement brut/net, mensualité, cashflow. Sauvegardez et comparez vos projets dans votre espace.</p></article>
-    </div>
-  </div>
-</section>
-
-<!-- ══ FEATURES ══ -->
-<section class="section">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <h2>Tout ce qu'il faut pour décider</h2>
-      <p>Le simulateur va au-delà du simple rendement brut affiché par les annonces.</p>
-    </div>
-    <div class="features">
-      <article class="feature reveal"><div class="f-ico teal"><svg viewBox="0 0 24 24"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg></div><h3>Rendement net réel</h3><p>Charges, taxe foncière, vacance, gestion : on calcule la vraie rentabilité, pas le chiffre vendeur.</p></article>
-      <article class="feature reveal d1"><div class="f-ico"><svg viewBox="0 0 24 24"><line x1="3" y1="21" x2="21" y2="21"/><line x1="3" y1="10" x2="21" y2="10"/><polyline points="5 6 12 3 19 6"/><line x1="4" y1="10" x2="4" y2="21"/><line x1="20" y1="10" x2="20" y2="21"/><line x1="12" y1="10" x2="12" y2="21"/></svg></div><h3>Crédit & mensualité</h3><p>Mensualité, coût du crédit et impact de l'apport selon le taux et la durée que vous choisissez.</p></article>
-      <article class="feature reveal d2"><div class="f-ico teal"><svg viewBox="0 0 24 24"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4z"/></svg></div><h3>Cashflow mensuel</h3><p>Vous savez immédiatement si le bien s'autofinance ou vous coûte chaque mois.</p></article>
-      <article class="feature reveal"><div class="f-ico"><svg viewBox="0 0 24 24"><path d="M4 11V8a2 2 0 012-2h12a2 2 0 012 2v3"/><path d="M2 14a2 2 0 014 0v2h12v-2a2 2 0 014 0v4a1 1 0 01-1 1H3a1 1 0 01-1-1z"/><line x1="6" y1="19" x2="6" y2="21"/><line x1="18" y1="19" x2="18" y2="21"/></svg></div><h3>Meublé ou nu (LMNP)</h3><p>Comparez location nue et meublée, avec l'impact sur le loyer et la rentabilité.</p></article>
-      <article class="feature reveal d1"><div class="f-ico teal"><svg viewBox="0 0 24 24"><path d="M21 10c0 7-9 12-9 12s-9-5-9-12a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg></div><h3>Quartiers de Lyon</h3><p>Données affinées par arrondissement pour les marchés tendus comme Lyon.</p></article>
-      <article class="feature reveal d2"><div class="f-ico"><svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg></div><h3>Espace projets</h3><p>Sauvegardez vos simulations, suivez leur statut (étude, visite, offre…) et partagez-les.</p></article>
-    </div>
-  </div>
-</section>
-
-<!-- ══ SOURCES / CONFIANCE ══ -->
-<section class="section">
-  <div class="wrap">
-    <div class="section-head reveal">
-      <h2>Des données fiables et sourcées</h2>
-      <p>Vos simulations s'appuient sur des données publiques de référence, mises à jour régulièrement.</p>
-    </div>
-    <div class="sources">
-      <div class="source-card reveal"><div class="src-ico"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg></div><h3>Prix DVF</h3><p>Prix au m² issus des Demandes de Valeurs Foncières : des transactions réelles (DGFiP).</p></div>
-      <div class="source-card reveal d1"><div class="src-ico"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg></div><h3>INSEE</h3><p>Population, revenus et données socio-démographiques officielles.</p></div>
-      <div class="source-card reveal d2"><div class="src-ico"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div><h3>Observatoires des loyers</h3><p>Loyers de référence par marché pour estimer la rentabilité réelle.</p></div>
-      <div class="source-card reveal d3"><div class="src-ico"><svg viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 11-2.12-9.36L23 10"/></svg></div><h3>Mises à jour</h3><p>775 villes suivies et actualisées pour rester au plus près du marché.</p></div>
-    </div>
-  </div>
-</section>
-
-<!-- ══ ANALYSE ══ -->
-<section class="section section-alt">
-  <div class="wrap">
-    <div class="split">
-      <div class="reveal-l">
-        <span class="eyebrow"><span class="dot"></span> En complément</span>
-        <h2>Comparez les villes avant de vous lancer</h2>
-        <p>Au-delà de la simulation, Parcell vous aide à repérer les marchés porteurs : prix, loyers, tension locative et attractivité, côte à côte.</p>
-        <ul>
-          <li>Prix au m² et loyers réels de 775 villes</li>
-          <li>Tension locative et score d'attractivité</li>
-          <li>Carte interactive et tableaux comparatifs</li>
-          <li>Évolution démographique sur 50 ans</li>
-        </ul>
-        <p style="margin-top:20px"><a href="/app.html#analyse" class="btn btn-ghost">Explorer l'analyse des villes</a></p>
-      </div>
-      <div class="split-visual reveal-r" aria-hidden="true">
-        <div class="bar-row"><span class="city">Saint-Étienne</span><span class="bar-track"><span class="bar-fill" data-w="88"></span></span><span class="pct">8,1 %</span></div>
-        <div class="bar-row"><span class="city">Roanne</span><span class="bar-track"><span class="bar-fill" data-w="80"></span></span><span class="pct">7,4 %</span></div>
-        <div class="bar-row"><span class="city">Montbrison</span><span class="bar-track"><span class="bar-fill" data-w="66"></span></span><span class="pct">6,1 %</span></div>
-        <div class="bar-row"><span class="city">Lyon 8e</span><span class="bar-track"><span class="bar-fill" data-w="48"></span></span><span class="pct">4,4 %</span></div>
-        <div class="bar-row"><span class="city">Lyon 6e</span><span class="bar-track"><span class="bar-fill" data-w="40"></span></span><span class="pct">3,7 %</span></div>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ══ CONTENU SEO ══ -->
-<section class="section" id="guides">
-  <div class="wrap prose reveal">
-    <h2>Investissement locatif : comprendre la rentabilité</h2>
-    <p>La <strong>rentabilité locative</strong> mesure ce que rapporte un bien immobilier par rapport à son prix d'achat. C'est l'indicateur clé de tout projet d'investissement, mais il faut distinguer plusieurs niveaux de calcul pour éviter les mauvaises surprises.</p>
-    <h3>Rentabilité brute</h3>
-    <p>Elle se calcule simplement : <em>(loyer annuel ÷ prix d'achat) × 100</em>. C'est le chiffre que l'on voit partout, mais il ignore les charges et la fiscalité. Utile pour une première comparaison rapide entre plusieurs villes.</p>
-    <h3>Rentabilité nette</h3>
-    <p>Plus réaliste, elle retranche la taxe foncière, les charges non récupérables, l'assurance, les frais de gestion et la vacance locative. C'est ce que le simulateur Parcell calcule pour vous donner une vision honnête de votre projet.</p>
-    <h3>Cashflow et effet de levier</h3>
-    <p>Le <strong>cashflow</strong> indique si, une fois la mensualité de crédit payée, le bien vous rapporte ou vous coûte chaque mois. Bien dimensionner l'apport, la durée et le taux du crédit change tout : ce sont autant de paramètres que vous pilotez dans le simulateur.</p>
-    <div class="internal-links">
-      <a href="/app.html#simulateur">Lancer une simulation</a>
-      <a href="/app.html#analyse">Comparer les villes</a>
-      <a href="#faq">Questions fréquentes</a>
-    </div>
-  </div>
-</section>
-
-<!-- ══ FAQ ══ -->
-<section class="section section-alt" id="faq">
-  <div class="wrap">
-    <div class="section-head reveal"><h2>Questions fréquentes</h2></div>
-    <div class="faq">
-      <article class="faq-item reveal"><h3>Comment calculer la rentabilité d'un investissement locatif ?</h3><p>La rentabilité brute = (loyer annuel ÷ prix d'achat) × 100. La rentabilité nette tient compte des charges, de la taxe foncière, de la vacance locative et des frais de gestion. Le simulateur calcule les deux automatiquement.</p></article>
-      <article class="faq-item reveal d1"><h3>Le simulateur Parcell est-il gratuit ?</h3><p>Oui, le simulateur de rentabilité est entièrement gratuit et utilisable sans créer de compte. Un compte gratuit permet seulement de sauvegarder vos projets.</p></article>
-      <article class="faq-item reveal d2"><h3>Sur quelles données reposent les estimations ?</h3><p>Parcell s'appuie sur les prix au m² et les loyers de référence de 775 villes françaises pour pré-remplir et fiabiliser vos simulations.</p></article>
-    </div>
-  </div>
-</section>
-
-<!-- ══ NEWSLETTER ══ -->
-<section class="section section-alt">
-  <div class="wrap news reveal">
-    <h2>Restez informé des bonnes opportunités</h2>
-    <p style="color:var(--text2);margin-top:10px;">Recevez nos analyses de villes et conseils d'investissement locatif. Pas de spam, désinscription en un clic.</p>
-    <form name="newsletter" method="POST" data-netlify="true" netlify-honeypot="bot-field" class="news-form" id="newsForm">
-      <input type="hidden" name="form-name" value="newsletter">
-      <p style="display:none;"><label>Ne pas remplir : <input name="bot-field"></label></p>
-      <input type="email" name="email" required placeholder="vous@email.fr" aria-label="Votre adresse email">
-      <button class="btn btn-primary" type="submit">S'inscrire</button>
-    </form>
-    <div class="news-ok" id="newsOk" style="display:none;">Merci, votre inscription est bien prise en compte.</div>
-    <p class="news-note">En vous inscrivant, vous acceptez de recevoir nos emails. Vos données ne sont jamais revendues.</p>
-  </div>
-</section>
-
-<!-- ══ CTA FINAL ══ -->
-<div class="cta-band reveal">
-  <h2>Prêt à évaluer votre prochain investissement ?</h2>
-  <p>Lancez votre première simulation gratuitement, en moins d'une minute.</p>
-  <a href="/app.html#simulateur" class="btn btn-primary btn-lg"><svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg> Ouvrir le simulateur</a>
-</div>
-</main>
-
-<!-- ══ FOOTER ══ -->
-<footer class="site-footer">
-  <div class="wrap">
-    <div class="footer-grid">
-      <div class="footer-brand">
-        <a class="brand" href="/">
-          <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
-          <span class="brand-name">Parc<span>ell</span></span>
-        </a>
-        <p>Le simulateur de rentabilité locative et l'analyse des villes françaises, pour investir avec les bonnes données.</p>
-      </div>
-      <div class="footer-col">
-        <h4>Outils</h4>
-        <a href="/app.html#simulateur">Simulateur</a>
-        <a href="/app.html#analyse">Analyse des villes</a>
-        <a href="/app.html#compte">Mon espace</a>
-      </div>
-      <div class="footer-col">
-        <h4>Ressources</h4>
-        <a href="#guides">Guides</a>
-        <a href="#faq">FAQ</a>
-      </div>
-      <div class="footer-col">
-        <h4>Légal</h4>
-        <a href="/mentions-legales.html">Mentions légales</a>
-        <a href="/confidentialite.html">Confidentialité</a>
-        <a href="/cgu.html">CGU</a>
-      </div>
-    </div>
-    <div class="footer-bottom">
-      <span>© 2026 Parcell. Tous droits réservés.</span>
-      <span>Données indicatives, ne constituent pas un conseil en investissement.</span>
-    </div>
-  </div>
-</footer>
-
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="js/config.js?v=3"></script>
+<script src="js/cities_loader.js?v=7"></script>
+<script src="js/auth.js?v=3"></script>
+<script src="js/simulator.js?v=7"></script>
+<script src="js/projects.js?v=4"></script>
+<script src="js/app.js?v=4"></script>
 <script>
 (function(){
-  // Menu mobile
+  var PH={simulateur:{eyebrow:'Outil',title:'Simulateur de rentabilité',desc:'Calculez en détail le rendement, la mensualité et le cashflow de votre projet locatif.'},analyse:{eyebrow:'Outil',title:'Analyse des villes',desc:'Comparez prix, loyers, tension locative et attractivité de 775 villes françaises, côte à côte.'},compte:{eyebrow:'Espace personnel',title:'Mes projets',desc:'Retrouvez vos simulations sauvegardées et gérez votre profil.'}};
+  window.updateActiveNav=function(tab){document.querySelectorAll('.app-nav').forEach(function(a){a.classList.toggle('active',a.dataset.tab===tab);});var p=PH[tab];if(!p)return;var e=document.getElementById('phEyebrow'),h=document.getElementById('phTitle'),d=document.getElementById('phDesc');if(e)e.textContent=p.eyebrow;if(h)h.textContent=p.title;if(d)d.textContent=p.desc;};
+  function tabFromHash(){var t=(location.hash||'').replace('#','');return['simulateur','analyse','compte'].indexOf(t)>=0?t:'analyse';}
+  function applyTab(t){if(typeof switchTab==='function')switchTab(t,null);updateActiveNav(t);}
+  window.addEventListener('hashchange',function(){applyTab(tabFromHash());});
+  window.addEventListener('load',function(){setTimeout(function(){var _orig=window.switchTab;if(typeof _orig==='function'){window.switchTab=function(tab,el){_orig(tab,el);updateActiveNav(tab);};}applyTab(tabFromHash());},150);});
   var b=document.getElementById('navBurger'),l=document.getElementById('navLinks');
   if(b&&l)b.addEventListener('click',function(){var o=l.classList.toggle('open');b.setAttribute('aria-expanded',o?'true':'false');});
-
-  // Mini-simulateur (toujours actif)
-  var mp=document.getElementById('mPrix'),ml=document.getElementById('mLoyer');
-  function eur(n){return Math.round(n).toLocaleString('fr-FR')+' €';}
-  function pct(n){return n.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %';}
-  function miniCalc(){
-    var prix=parseFloat(mp.value)||0,loyer=parseFloat(ml.value)||0,an=loyer*12;
-    var brut=prix>0?an/prix*100:0, net=brut*0.72; // ~28% de charges/taxe/vacance (estimation)
-    document.getElementById('mBrut').textContent=pct(brut);
-    document.getElementById('mNet').textContent=pct(net);
-    document.getElementById('mAn').textContent=eur(an);
-  }
-  if(mp&&ml){mp.addEventListener('input',miniCalc);ml.addEventListener('input',miniCalc);miniCalc();}
-
-  // Capture email (compatible Netlify Forms + confirmation immédiate)
-  var nf=document.getElementById('newsForm');
-  if(nf)nf.addEventListener('submit',function(e){
-    e.preventDefault();
-    try{fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(new FormData(nf)).toString()}).catch(function(){});}catch(_){}
-    nf.style.display='none';
-    var ok=document.getElementById('newsOk'); if(ok)ok.style.display='block';
-  });
-
-  var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // Compteurs animés
-  function animateCount(el){
-    var target=parseFloat(el.dataset.count),dec=parseInt(el.dataset.dec||'0'),
-        pre=el.dataset.prefix||'',suf=el.dataset.suffix||'',dur=1100,t0=null;
-    function fmt(v){return pre+v.toLocaleString('fr-FR',{minimumFractionDigits:dec,maximumFractionDigits:dec})+suf;}
-    function step(t){if(!t0)t0=t;var p=Math.min((t-t0)/dur,1),e=1-Math.pow(1-p,3);el.textContent=fmt(target*e);if(p<1)requestAnimationFrame(step);}
-    requestAnimationFrame(step);
-  }
-
-  if(reduce||!('IntersectionObserver' in window)){
-    document.querySelectorAll('.reveal,.reveal-l,.reveal-r,.reveal-scale').forEach(function(e){e.classList.add('in');});
-    document.querySelectorAll('[data-count]').forEach(function(e){
-      var d=parseInt(e.dataset.dec||'0');e.textContent=(e.dataset.prefix||'')+parseFloat(e.dataset.count).toLocaleString('fr-FR',{minimumFractionDigits:d,maximumFractionDigits:d})+(e.dataset.suffix||'');});
-    document.querySelectorAll('.bar-fill').forEach(function(e){e.style.width=e.dataset.w+'%';});
-    return;
-  }
-
-  var io=new IntersectionObserver(function(entries){
-    entries.forEach(function(en){
-      if(!en.isIntersecting)return;
-      var el=en.target;
-      el.classList.add('in');
-      el.querySelectorAll&&el.querySelectorAll('[data-count]').forEach(animateCount);
-      el.querySelectorAll&&el.querySelectorAll('.bar-fill').forEach(function(b){b.style.width=b.dataset.w+'%';});
-      io.unobserve(el);
-    });
-  },{threshold:0.18});
-  document.querySelectorAll('.reveal,.reveal-l,.reveal-r,.reveal-scale').forEach(function(e){io.observe(e);});
-
-  // Scroll : barre de progression + parallaxe
+})();
+</script>
+<script>
+(function(){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var a1=document.getElementById('amb1'),a2=document.getElementById('amb2');
+  if(!a1||!a2)return;
+  var sp=0;
+  function loop(t){var y=window.pageYOffset||0;var h=document.documentElement.scrollHeight-window.innerHeight;var tp=h>0?y/h:0;sp+=(tp-sp)*0.12;var s=t/1000,p=sp;a1.style.transform='translate3d('+(Math.sin(p*Math.PI*1.6)*360+Math.sin(s*0.32)*70).toFixed(1)+'px,'+(p*600+Math.cos(s*0.24)*55).toFixed(1)+'px,0) scale('+(1+Math.sin(s*0.34)*0.10).toFixed(3)+')';a1.style.opacity=(0.13+Math.sin(s*0.4)*0.06).toFixed(3);a2.style.transform='translate3d('+(Math.cos(p*Math.PI*1.35)*-340+Math.cos(s*0.29)*72).toFixed(1)+'px,'+(p*-380+Math.sin(s*0.22)*60).toFixed(1)+'px,0) scale('+(1.05+Math.cos(s*0.31)*0.10).toFixed(3)+')';a2.style.opacity=(0.10+Math.cos(s*0.36)*0.05).toFixed(3);requestAnimationFrame(loop);}
+  requestAnimationFrame(loop);
   var prog=document.getElementById('scrollProgress');
-  var pxEls=[].slice.call(document.querySelectorAll('[data-parallax]'));
-  var ticking=false;
-  function onScroll(){
-    var y=window.pageYOffset||document.documentElement.scrollTop;
-    var h=document.documentElement.scrollHeight-window.innerHeight;
-    if(prog)prog.style.width=(h>0?(y/h*100):0)+'%';
-    for(var i=0;i<pxEls.length;i++){
-      var el=pxEls[i],f=parseFloat(el.dataset.parallax)||0;
-      el.style.transform='translate3d(0,'+(y*f*0.12).toFixed(1)+'px,0)';
-    }
-    ticking=false;
-  }
-  window.addEventListener('scroll',function(){
-    if(!ticking){ticking=true;requestAnimationFrame(onScroll);}
-  },{passive:true});
-  onScroll();
-
-  // Projecteurs de fond : balayage au scroll + dérive continue
-  var amb1=document.getElementById('amb1'),amb2=document.getElementById('amb2');
-  if(amb1&&amb2){
-    var scrollP=0;
-    function spotlights(t){
-      var y=window.pageYOffset||document.documentElement.scrollTop;
-      var h=document.documentElement.scrollHeight-window.innerHeight;
-      var target=h>0?y/h:0;
-      scrollP+=(target-scrollP)*0.12;               // lissage du scroll (plus réactif)
-      var s=t/1000, p=scrollP;
-      // halo or : panoramique vers la droite/bas + respiration de position
-      var x1=Math.sin(p*Math.PI*1.6)*360 + Math.sin(s*0.32)*70;
-      var y1=p*600 + Math.cos(s*0.24)*55;
-      amb1.style.transform='translate3d('+x1.toFixed(1)+'px,'+y1.toFixed(1)+'px,0) scale('+(1+Math.sin(s*0.34)*0.10).toFixed(3)+')';
-      // halo teal : panoramique inverse
-      var x2=Math.cos(p*Math.PI*1.35)*-340 + Math.cos(s*0.29)*72;
-      var y2=p*-380 + Math.sin(s*0.22)*60;
-      amb2.style.transform='translate3d('+x2.toFixed(1)+'px,'+y2.toFixed(1)+'px,0) scale('+(1.05+Math.cos(s*0.31)*0.10).toFixed(3)+')';
-      requestAnimationFrame(spotlights);
-    }
-    requestAnimationFrame(spotlights);
-  }
+  if(prog)window.addEventListener('scroll',function(){var y2=window.pageYOffset||0;var h2=document.documentElement.scrollHeight-window.innerHeight;prog.style.width=(h2>0?(y2/h2*100):0)+'%';},{passive:true});
 })();
 </script>
 </body>
