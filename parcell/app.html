@@ -12,14 +12,18 @@
 <link rel="stylesheet" href="css/main.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
 <style>
+  /* Ajustements quand main.css et site.css cohabitent (l'app utilise le chrome du site) */
   body{background:var(--bg);}
   .page-header{padding:28px 0 18px;border-bottom:1px solid var(--border);margin-bottom:22px;}
   .page-header h1{font-family:'Outfit',sans-serif;font-size:clamp(22px,3.2vw,30px);font-weight:800;letter-spacing:-0.02em;margin:8px 0 6px;}
   .page-header .ph-desc{color:var(--text2);font-size:14px;max-width:780px;}
   .nav-links a.active{color:var(--text);}
   .nav-links a.active::after{content:'';display:block;height:2px;margin-top:4px;background:linear-gradient(90deg,var(--gold),var(--teal));border-radius:2px;}
+  /* l'ancien hero centre n'est plus utilisé : on neutralise pour éviter tout reste de style */
   #appRoot .hero{padding:0;border:0;background:none;}
+  /* user dropdown reste cohérent avec main.css */
   .nav-cta .nav-user{margin-left:6px;}
+  /* footer compact pour l'app */
   .site-footer{margin-top:48px;padding:32px 0 20px;}
   .site-footer .footer-bottom{border-top:none;padding-top:0;}
 </style>
@@ -28,77 +32,225 @@
 <div class="scroll-progress" id="scrollProgress"></div>
 <div class="ambient ambient-1" id="amb1"></div>
 <div class="ambient ambient-2" id="amb2"></div>
-<div id="authWall" style="display:none;"></div>
+
+<!-- AUTH WALL -->
+<div id="authWall" style="display:none;">
+  <!-- Injecté par auth.js -->
+</div>
+
+<!-- APP -->
 <div id="appRoot" style="display:none;">
-  <header class="site-nav"><div class="site-nav-inner">
-    <a class="brand" href="/" aria-label="Parcell, accueil"><span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span class="brand-name">Parc<span>ell</span></span></a>
-    <nav class="nav-links" id="navLinks" aria-label="Navigation principale">
-      <a href="/">Accueil</a>
-      <a href="#simulateur" class="app-nav" data-tab="simulateur">Simulateur</a>
-      <a href="#analyse" class="app-nav" data-tab="analyse">Analyse des villes</a>
-      <a href="#compte" class="app-nav" data-tab="compte">Mes projets</a>
-      <a href="/#guides">Guides</a>
-    </nav>
-    <div class="nav-cta">
-      <div class="nav-user">
-        <span class="nav-user-name" id="navUserName" onclick="toggleUserDropdown()"></span>
-        <div class="nav-avatar" id="navAvatar" onclick="toggleUserDropdown()"></div>
-        <div class="user-dropdown" id="userDropdown">
-          <div class="ud-header"><div class="ud-name" id="ddName">—</div><div class="ud-email" id="ddEmail">—</div><span class="ud-plan">⭐ Plan Gratuit</span></div>
-          <div class="ud-item" onclick="switchTab('compte',null);closeUserDropdown();updateActiveNav('compte')">Mon profil</div>
-          <div class="ud-item" onclick="switchTab('compte',null);showCompteSection('projets');closeUserDropdown();updateActiveNav('compte')">Mes projets</div>
-          <div class="ud-item" onclick="switchTab('compte',null);showCompteSection('notifs');closeUserDropdown();updateActiveNav('compte')">Notifications<span id="navNotifBadge" style="display:none;margin-left:auto;background:var(--teal);color:#0a0d14;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;"></span></div>
-          <div class="ud-divider"></div>
-          <div class="ud-item ud-logout" onclick="signOut()">Se déconnecter</div>
+
+  <!-- NAV : même chrome que le site -->
+  <header class="site-nav">
+    <div class="site-nav-inner">
+      <a class="brand" href="/" aria-label="Parcell, accueil">
+        <span class="brand-mark"><svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+        <span class="brand-name">Parc<span>ell</span></span>
+      </a>
+      <nav class="nav-links" id="navLinks" aria-label="Navigation principale">
+        <a href="/">Accueil</a>
+        <a href="#simulateur" class="app-nav" data-tab="simulateur">Simulateur</a>
+        <a href="#analyse" class="app-nav" data-tab="analyse">Analyse des villes</a>
+        <a href="#compte" class="app-nav" data-tab="compte">Mes projets</a>
+        <a href="/#guides">Guides</a>
+      </nav>
+      <div class="nav-cta">
+        <div id="navGuest" style="display:flex;align-items:center;gap:12px;">
+          <a href="javascript:void(0)" onclick="showAuthModal('login')" class="btn btn-ghost">Connexion</a>
+          <a href="#simulateur" class="btn btn-primary">Lancer le simulateur</a>
         </div>
+        <div id="navUserWrap" style="display:none;">
+          <div class="nav-user">
+            <span class="nav-user-name" id="navUserName" onclick="toggleUserDropdown()"></span>
+            <div class="nav-avatar" id="navAvatar" onclick="toggleUserDropdown()"></div>
+            <div class="user-dropdown" id="userDropdown">
+            <div class="ud-header">
+              <div class="ud-name" id="ddName">—</div>
+              <div class="ud-email" id="ddEmail">—</div>
+              <span class="ud-plan">⭐ Plan Gratuit</span>
+            </div>
+            <div class="ud-item" onclick="switchTab('compte',null);closeUserDropdown();updateActiveNav('compte')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>
+              Mon profil
+            </div>
+            <div class="ud-item" onclick="switchTab('compte',null);showCompteSection('projets');closeUserDropdown();updateActiveNav('compte')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+              Mes projets
+            </div>
+            <div class="ud-item" onclick="switchTab('compte',null);showCompteSection('notifs');closeUserDropdown();updateActiveNav('compte')">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
+              Notifications
+              <span id="navNotifBadge" style="display:none;margin-left:auto;background:var(--teal);color:#0a0d14;border-radius:10px;padding:1px 7px;font-size:10px;font-weight:700;"></span>
+            </div>
+            <div class="ud-divider"></div>
+            <div class="ud-item ud-logout" onclick="signOut()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Se déconnecter
+            </div>
+          </div>
+          </div>
+        </div>
+        <button class="nav-burger" id="navBurger" aria-label="Ouvrir le menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
       </div>
-      <button class="nav-burger" id="navBurger" aria-label="Ouvrir le menu" aria-expanded="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
     </div>
-  </div></header>
+  </header>
+
+  <!-- Contenu : structure de page classique du site -->
   <main class="wrap">
     <div class="page-header" id="pageHeader">
       <span class="eyebrow"><span class="dot"></span> <span id="phEyebrow">Outil</span></span>
       <h1 id="phTitle">Analyse des villes</h1>
       <p class="ph-desc" id="phDesc">Comparez prix, loyers, tension locative et attractivité de 775 villes françaises, côte à côte.</p>
     </div>
+
+    <!-- Onglets chargés dynamiquement par app.js -->
     <div id="tabContainer"></div>
   </main>
+
+  <!-- MODALS & TOAST -->
   <div class="detail-overlay" id="detailOverlay" onclick="closeDrawer()"></div>
-  <div class="detail-drawer" id="detailDrawer"><div class="drawer-close" onclick="closeDrawer()">✕</div><div class="drawer-title" id="drawerTitle">—</div><div class="drawer-subtitle" id="drawerSubtitle">—</div><div id="drawerContent"></div></div>
+  <div class="detail-drawer" id="detailDrawer">
+    <div class="drawer-close" onclick="closeDrawer()">✕</div>
+    <div class="drawer-title" id="drawerTitle">—</div>
+    <div class="drawer-subtitle" id="drawerSubtitle">—</div>
+    <div id="drawerContent"></div>
+  </div>
+
   <div class="modal-overlay" id="saveModal" onclick="closeSaveModal(event)">
     <div class="modal-box">
       <div class="modal-title">💾 Sauvegarder le projet</div>
       <div class="modal-sub">Ce projet sera accessible dans votre espace personnel.</div>
       <div class="modal-field"><label>Nom du projet</label><input type="text" id="saveProjectName" placeholder="Ex : Appart Lyon 3e, Part-Dieu"></div>
-      <div class="modal-field"><label>Note (optionnel)</label><textarea id="saveProjectNote" rows="2" placeholder="Ex : Bonne affaire…"></textarea></div>
-      <div class="modal-actions"><button class="modal-btn-cancel" onclick="closeSaveModal()">Annuler</button><button class="modal-btn-save" onclick="saveProject()">Sauvegarder</button></div>
+      <div class="modal-field"><label>Note (optionnel)</label><textarea id="saveProjectNote" rows="2" placeholder="Ex : Bonne affaire, à voir avec le banquier…"></textarea></div>
+      <div class="modal-actions">
+        <button class="modal-btn-cancel" onclick="closeSaveModal()">Annuler</button>
+        <button class="modal-btn-save" onclick="saveProject()">Sauvegarder</button>
+      </div>
     </div>
   </div>
-  <div class="save-toast" id="saveToast"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg><span id="toastMsg">✓</span></div>
-  <footer class="site-footer"><div class="wrap"><div class="footer-bottom">
-    <span>© 2026 Parcell · <a href="/">Accueil</a> · <a href="/mentions-legales.html">Mentions légales</a> · <a href="/confidentialite.html">Confidentialité</a> · <a href="/cgu.html">CGU</a></span>
-    <span>Données indicatives, ne constituent pas un conseil en investissement.</span>
-  </div></div></footer>
+
+  <div class="save-toast" id="saveToast">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+    <span id="toastMsg">✓</span>
+  </div>
+
+  <!-- Footer cohérent avec le site -->
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-bottom">
+        <span>© 2026 Parcell · <a href="/">Accueil</a> · <a href="/mentionslegales.html">Mentions légales</a> · <a href="/confidentialite.html">Confidentialité</a> · <a href="/cgu.html">CGU</a></span>
+        <span>Données indicatives, ne constituent pas un conseil en investissement.</span>
+      </div>
+    </div>
+  </footer>
 </div>
+
+<!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="js/config.js?v=3"></script>
-<script src="js/cities_loader.js?v=7"></script>
+<script src="js/cities_loader.js?v=8"></script>
 <script src="js/auth.js?v=3"></script>
-<script src="js/simulator.js?v=7"></script>
-<script src="js/projects.js?v=4"></script>
-<script src="js/app.js?v=4"></script>
+<script src="js/simulator.js?v=8"></script>
+<script src="js/projects.js?v=5"></script>
+<script src="js/app.js?v=5"></script>
+
+<!-- Cohérence : nav active + en-tête de page selon l'onglet + ancres -->
 <script>
 (function(){
-  var PH={simulateur:{eyebrow:'Outil',title:'Simulateur de rentabilité',desc:'Calculez en détail le rendement, la mensualité et le cashflow de votre projet locatif.'},analyse:{eyebrow:'Outil',title:'Analyse des villes',desc:'Comparez prix, loyers, tension locative et attractivité de 775 villes françaises, côte à côte.'},compte:{eyebrow:'Espace personnel',title:'Mes projets',desc:'Retrouvez vos simulations sauvegardées et gérez votre profil.'}};
-  window.updateActiveNav=function(tab){document.querySelectorAll('.app-nav').forEach(function(a){a.classList.toggle('active',a.dataset.tab===tab);});var p=PH[tab];if(!p)return;var e=document.getElementById('phEyebrow'),h=document.getElementById('phTitle'),d=document.getElementById('phDesc');if(e)e.textContent=p.eyebrow;if(h)h.textContent=p.title;if(d)d.textContent=p.desc;};
-  function tabFromHash(){var t=(location.hash||'').replace('#','');return['simulateur','analyse','compte'].indexOf(t)>=0?t:'analyse';}
-  function applyTab(t){if(typeof switchTab==='function')switchTab(t,null);updateActiveNav(t);}
-  window.addEventListener('hashchange',function(){applyTab(tabFromHash());});
-  window.addEventListener('load',function(){setTimeout(function(){var _orig=window.switchTab;if(typeof _orig==='function'){window.switchTab=function(tab,el){_orig(tab,el);updateActiveNav(tab);};}applyTab(tabFromHash());},150);});
+  var PH = {
+    simulateur:{eyebrow:'Outil',title:'Simulateur de rentabilité',desc:'Calculez en détail le rendement, la mensualité et le cashflow de votre projet locatif.'},
+    analyse:   {eyebrow:'Outil',title:'Analyse des villes',desc:'Comparez prix, loyers, tension locative et attractivité de 775 villes françaises, côte à côte.'},
+    compte:    {eyebrow:'Espace personnel',title:'Mes projets',desc:'Retrouvez vos simulations sauvegardées et gérez votre profil.'}
+  };
+  window.updateActiveNav = function(tab){
+    document.querySelectorAll('.app-nav').forEach(function(a){
+      a.classList.toggle('active', a.dataset.tab===tab);
+    });
+    var p=PH[tab]; if(!p)return;
+    var e=document.getElementById('phEyebrow'),h=document.getElementById('phTitle'),d=document.getElementById('phDesc');
+    if(e)e.textContent=p.eyebrow;
+    if(h)h.textContent=p.title;
+    if(d)d.textContent=p.desc;
+  };
+  function tabFromHash(){
+    var t=(location.hash||'').replace('#','');
+    return ['simulateur','analyse','compte'].indexOf(t)>=0 ? t : 'analyse';
+  }
+  function applyTab(t){
+    if(typeof switchTab==='function') switchTab(t,null);
+    updateActiveNav(t);
+  }
+  window.addEventListener('hashchange',function(){ applyTab(tabFromHash()); });
+  window.addEventListener('load',function(){
+    setTimeout(function(){
+      // Wrap switchTab pour synchroniser l'en-tête + le nav à chaque changement d'onglet
+      var _orig=window.switchTab;
+      if(typeof _orig==='function'){
+        window.switchTab=function(tab,el){ _orig(tab,el); updateActiveNav(tab); };
+      }
+      applyTab(tabFromHash());
+    },150);
+  });
+
+  // burger mobile
   var b=document.getElementById('navBurger'),l=document.getElementById('navLinks');
   if(b&&l)b.addEventListener('click',function(){var o=l.classList.toggle('open');b.setAttribute('aria-expanded',o?'true':'false');});
+
+  // Bascule nav-cta : boutons "Connexion / Lancer le simulateur" quand deconnecte,
+  // dropdown utilisateur quand connecte. Reste coherent avec la home.
+  window.syncNavCta = function(){
+    var hasUser = (typeof currentUser !== 'undefined') && !!currentUser;
+    var g = document.getElementById('navGuest');
+    var u = document.getElementById('navUserWrap');
+    if (g) g.style.display = hasUser ? 'none' : 'flex';
+    if (u) u.style.display = hasUser ? '' : 'none';
+  };
+  // Premier sync apres init de l'app
+  window.addEventListener('load', function(){ setTimeout(syncNavCta, 250); });
+  // Sync sur changements d'auth Supabase (login, logout, refresh token)
+  function hookAuth(){
+    if (typeof supabaseClient !== 'undefined' && supabaseClient.auth && typeof supabaseClient.auth.onAuthStateChange === 'function') {
+      supabaseClient.auth.onAuthStateChange(function(){ setTimeout(syncNavCta, 50); });
+      return true;
+    }
+    return false;
+  }
+  if (!hookAuth()) setTimeout(hookAuth, 400);
+})();
+</script>
+
+<!-- Projecteurs de fond animés -->
+<script>
+(function(){
+  if(window.matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  var a1=document.getElementById('amb1'),a2=document.getElementById('amb2');
+  if(!a1||!a2)return;
+  a1.style.willChange=a2.style.willChange='transform,opacity';
+  var sp=0;
+  function loop(t){
+    var y=window.pageYOffset||document.documentElement.scrollTop;
+    var h=document.documentElement.scrollHeight-window.innerHeight;
+    var tp=h>0?y/h:0; sp+=(tp-sp)*0.12; var s=t/1000,p=sp;
+    a1.style.transform='translate3d('+(Math.sin(p*Math.PI*1.6)*360+Math.sin(s*0.32)*70).toFixed(1)+'px,'+(p*600+Math.cos(s*0.24)*55).toFixed(1)+'px,0) scale('+(1+Math.sin(s*0.34)*0.10).toFixed(3)+')';
+    a1.style.opacity=(0.13+Math.sin(s*0.4)*0.06).toFixed(3);
+    a2.style.transform='translate3d('+(Math.cos(p*Math.PI*1.35)*-340+Math.cos(s*0.29)*72).toFixed(1)+'px,'+(p*-380+Math.sin(s*0.22)*60).toFixed(1)+'px,0) scale('+(1.05+Math.cos(s*0.31)*0.10).toFixed(3)+')';
+    a2.style.opacity=(0.10+Math.cos(s*0.36)*0.05).toFixed(3);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+
+  // barre de progression scroll
+  var prog=document.getElementById('scrollProgress');
+  if(prog)window.addEventListener('scroll',function(){
+    var y2=window.pageYOffset||document.documentElement.scrollTop;
+    var h2=document.documentElement.scrollHeight-window.innerHeight;
+    prog.style.width=(h2>0?(y2/h2*100):0)+'%';
+  },{passive:true});
 })();
 </script>
 </body>
