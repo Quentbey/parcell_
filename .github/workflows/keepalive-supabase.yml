@@ -1,0 +1,35 @@
+name: Supabase keepalive
+
+# Empeche le projet Supabase free tier de se mettre en pause apres ~7 jours
+# d'inactivite. Fait une simple requete REST en lecture toutes les 72 heures.
+# La cle utilisee est la cle publishable (deja exposee cote client), donc elle
+# peut rester en clair ici sans risque.
+
+on:
+  schedule:
+    # tous les 3 jours a 07:17 UTC (intervalle volontairement decale pour
+    # eviter les heures rondes ou tout le monde planifie)
+    - cron: '17 7 */3 * *'
+  workflow_dispatch: {}   # permet de declencher manuellement depuis l'onglet Actions
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping cities table
+        env:
+          SB_URL: https://odjxxbbufbumlyxgqkaq.supabase.co
+          SB_KEY: sb_publishable_MOcAWRPbtcgnLOPMbTP5Sg_VLWoTZO8
+        run: |
+          set -eu
+          status=$(curl -s -o /tmp/resp.txt -w "%{http_code}" \
+            -H "apikey: $SB_KEY" \
+            -H "Authorization: Bearer $SB_KEY" \
+            "$SB_URL/rest/v1/cities?select=id&limit=1")
+          echo "HTTP status: $status"
+          head -c 200 /tmp/resp.txt
+          if [ "$status" != "200" ]; then
+            echo "::error::Ping Supabase a echoue (status $status). Le projet est peut-etre en pause."
+            exit 1
+          fi
+          echo "OK : Supabase repond, le projet reste actif."
