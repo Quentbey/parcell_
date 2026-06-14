@@ -37,6 +37,7 @@ LYON_QUARTIERS.forEach(q => { CP_TO_QUARTIER[q.cp] = q.code; });
 
 // État simulateur
 let simType = 'Apt', simMeuble = true, simMode = 'simple';
+let simColoc = { on: false, n: 2 };   // Colocation : actif + nombre de colocataires
 let activeOpts = new Set();
 let simData = {};
 
@@ -381,23 +382,54 @@ function renderTable() {
   `).join('');
 }
 
-// ── Select Ville simulateur ────────────────────────────────────
+// ── Champ Ville du simulateur (avec recherche/autocomplete) ────
 function populateSimVilleSelect() {
-  const sel = document.getElementById('simVille');
-  if (!sel) return;
-
-  sel.innerHTML = '';
-  VILLES.forEach(v => {
-    const opt = document.createElement('option');
-    opt.value = v.Ville;
-    opt.textContent = `${v.Ville} (${v.Dept})`;
-    sel.appendChild(opt);
-  });
-
-  // Ville par défaut
+  const input = document.getElementById('simVille');
+  if (!input) return;
   const defaultCity = (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.defaultCity) || 'Lyon';
-  const match = [...sel.options].find(o => o.value === defaultCity);
-  if (match) sel.value = defaultCity;
+  if (VILLES.find(v => v.Ville === defaultCity)) input.value = defaultCity;
+}
+
+function onSimVilleInput() {
+  const input = document.getElementById('simVille');
+  const dd = document.getElementById('simVilleDropdown');
+  if (!input || !dd) return;
+  const q = input.value.trim().toLowerCase();
+  let matches;
+  if (!q) {
+    matches = VILLES.slice(0, 15);
+  } else {
+    matches = VILLES.filter(v => v.Ville.toLowerCase().startsWith(q)).slice(0, 30);
+    if (matches.length < 5) {
+      const extra = VILLES.filter(v => !v.Ville.toLowerCase().startsWith(q) && v.Ville.toLowerCase().includes(q)).slice(0, 30 - matches.length);
+      matches = matches.concat(extra);
+    }
+  }
+  if (!matches.length) {
+    dd.innerHTML = '<div style="padding:10px 13px;color:var(--text3);font-size:13px;">Aucune ville</div>';
+    dd.style.display = 'block';
+    return;
+  }
+  dd.innerHTML = matches.map(v => `<div style="padding:9px 13px;cursor:pointer;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);"
+      onmousedown="pickSimVille('${v.Ville.replace(/'/g, "\\'")}')"
+      onmouseover="this.style.background='var(--bg3)'"
+      onmouseout="this.style.background=''"
+    >${v.Ville} <span style="color:var(--text3);font-size:11px;">${v.Dept}</span></div>`).join('');
+  dd.style.display = 'block';
+}
+
+function pickSimVille(name) {
+  const input = document.getElementById('simVille');
+  if (input) input.value = name;
+  hideSimVilleDropdown();
+  if (typeof onSimVilleChange === 'function') onSimVilleChange();
+}
+
+function hideSimVilleDropdown() {
+  setTimeout(() => {
+    const dd = document.getElementById('simVilleDropdown');
+    if (dd) dd.style.display = 'none';
+  }, 180);
 }
 
 // ── renderAll : point d'entrée appelé par initApp ─────────────
