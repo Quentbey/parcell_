@@ -116,19 +116,18 @@ function renderSimulateurTab() {
   </div>
   <p style="text-align:center;font-size:12px;color:var(--text3);margin-bottom:16px;" id="modeDesc">Estimez rapidement la rentabilité d'un bien en quelques clics.</p>
 
-  <div class="import-bar" id="importBar">
-    <span style="font-size:13px;color:var(--teal);white-space:nowrap;display:flex;align-items:center;gap:5px;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>IA
-    </span>
-    <textarea id="importInput" placeholder="Collez le texte d'une annonce (LeBonCoin, SeLoger, PAP…)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);padding:8px 12px;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color 0.2s;resize:vertical;min-height:52px;max-height:140px;width:100%;line-height:1.5;" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border2)'"></textarea>
-    <button class="import-btn" id="importBtn" onclick="parseAnnonceAI()"><span id="importBtnText">Analyser ✦</span></button>
+  <div style="display:flex;justify-content:center;margin-bottom:18px;">
+    <button class="import-btn" disabled title="Fonctionnalité IA en cours de développement" style="opacity:0.6;cursor:not-allowed;display:inline-flex;align-items:center;gap:8px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+      Importer une annonce (bientôt disponible)
+    </button>
   </div>
-  <div class="import-result" id="importResult"></div>
 
   <div class="section"><div class="sim-layout">
     <div class="card" style="padding:24px;">
-      <div class="input-block"><label>Ville</label>
-        <select class="field" id="simVille" onchange="onSimVilleChange()"></select>
+      <div class="input-block" style="position:relative;"><label>Ville</label>
+        <input class="field" type="text" id="simVille" autocomplete="off" placeholder="Tapez une ville (ex: Lyon)" oninput="onSimVilleInput()" onfocus="onSimVilleInput()" onblur="hideSimVilleDropdown()">
+        <div id="simVilleDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:260px;overflow-y:auto;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);z-index:30;box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
       </div>
       <div class="input-block" id="quartierBlock" style="display:none;"><label>Quartier <span style="color:var(--teal);font-size:11px;">· influe sur le loyer</span></label>
         <select class="field" id="simQuartier" onchange="updateSimLoyer()"></select>
@@ -168,6 +167,21 @@ function renderSimulateurTab() {
               <span style="font-size:11px;color:var(--text3);">+</span>
               <input type="number" id="meublePct" class="field" style="width:50px;padding:5px 7px;font-size:13px;" value="15" min="0" max="50" oninput="updateSimLoyer()">
               <span style="font-size:11px;color:var(--text3);">%</span>
+            </div>
+          </div>
+        </div>
+        <div class="input-block"><label>Colocation <span style="color:var(--text3);font-size:11px;">· loyer ajusté automatiquement</span></label>
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <div class="toggle-group" style="flex:1;min-width:220px;">
+              <button class="toggle-btn active" id="btnColocOff" onclick="setColoc(false)">🛏️ Location classique</button>
+              <button class="toggle-btn" id="btnColocOn" onclick="setColoc(true)">👥 Colocation</button>
+            </div>
+            <div id="colocCountWrap" style="display:none;align-items:center;gap:6px;">
+              <span style="font-size:11px;color:var(--text3);">Colocs :</span>
+              <select id="simColocN" class="field" style="width:64px;padding:5px 7px;font-size:13px;" onchange="setColocN(this.value)">
+                <option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5+</option>
+              </select>
+              <span id="colocBonusInfo" style="font-size:11px;color:var(--teal);font-weight:600;"></span>
             </div>
           </div>
         </div>
