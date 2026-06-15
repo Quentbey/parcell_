@@ -126,6 +126,118 @@ const STATUS_CONFIG = {
   abandonne:{ label: 'Abandonné',   color: 'var(--red)',   icon: '❌' },
 };
 
+// ─── Comparaison de projets ───
+let compareMode = false;
+const compareSelected = new Set();
+let compareCriteria = [];
+
+const COMPARE_CRITERIA = [
+  { key:'ville',      label:'Ville',         defaut:true,  get:p => (p.ville||'—') + (p.quartier?' · '+p.quartier:'') },
+  { key:'type',       label:'Type de bien',  defaut:true,  get:p => p.type_bien==='Apt'?'Appartement':'Maison' },
+  { key:'surface',    label:'Surface',       defaut:true,  get:p => (p.surface||0)+' m²' },
+  { key:'pieces',     label:'Pièces',        defaut:true,  get:p => (p.pieces||'—')+' P' },
+  { key:'prix',       label:"Prix d'achat",  defaut:true,  get:p => Math.round(p.prix_achat||0).toLocaleString('fr-FR')+' €' },
+  { key:'loyer',      label:'Loyer mensuel', defaut:true,  get:p => Math.round(p.loyer_mensuel||0).toLocaleString('fr-FR')+' €' },
+  { key:'rentBrute',  label:'Rentabilité brute', defaut:true, get:p => p.rent_brute||'—' },
+  { key:'rentNette',  label:'Rentabilité nette', defaut:true, get:p => p.rent_nette||'—' },
+  { key:'mensualite', label:'Mensualité',    defaut:true,  get:p => Math.round(p.mensualite||0).toLocaleString('fr-FR')+' €' },
+  { key:'cashflow',   label:'Cashflow',      defaut:true,
+      get:p => { const cf=parseFloat(p.cashflow)||0; return (cf>=0?'+':'')+Math.round(cf).toLocaleString('fr-FR')+' €'; },
+      color:p => parseFloat(p.cashflow)>=0?'var(--green)':'var(--red)' },
+  { key:'status',     label:'Statut',        defaut:false, get:p => (STATUS_CONFIG[p.status]?.label)||p.status||'—' },
+  { key:'meuble',     label:'Meublé',        defaut:false, get:p => p.meuble?'Oui':'Non' },
+  { key:'duree',      label:'Durée du prêt', defaut:false, get:p => (p.params?.duree||'—')+' ans' },
+  { key:'taux',       label:"Taux d'intérêt",defaut:false, get:p => (p.params?.taux||'—')+' %' },
+  { key:'apport',     label:'Apport',        defaut:false, get:p => p.params?.apport ? Math.round(parseFloat(p.params.apport)).toLocaleString('fr-FR')+' €' : '—' },
+  { key:'coloc',      label:'Colocation',    defaut:false, get:p => (parseInt(p.params?.coloc)||0) >= 2 ? p.params.coloc+' colocs' : 'Non' },
+  { key:'created',    label:'Créé le',       defaut:false, get:p => new Date(p.created_at).toLocaleDateString('fr-FR') },
+  { key:'note',       label:'Note',          defaut:false, get:p => p.note||'—' },
+];
+
+function loadCompareCriteria(){
+  try { const s=localStorage.getItem('parcell:compareCriteria'); if(s) compareCriteria=JSON.parse(s); } catch(_){}
+  if(!compareCriteria.length) compareCriteria = COMPARE_CRITERIA.filter(c=>c.defaut).map(c=>c.key);
+}
+function saveCompareCriteria(){ try { localStorage.setItem('parcell:compareCriteria', JSON.stringify(compareCriteria)); } catch(_){} }
+
+function toggleCompareMode(){
+  compareMode = !compareMode;
+  compareSelected.clear();
+  renderProjets();
+}
+function toggleProjectInCompare(id, event){
+  if(event) event.stopPropagation();
+  if(compareSelected.has(id)) compareSelected.delete(id); else compareSelected.add(id);
+  renderProjets();
+}
+function showComparison(){
+  loadCompareCriteria();
+  if(compareSelected.size < 2){ if(typeof showToast==='function') showToast('Sélectionnez au moins 2 projets'); return; }
+  const grid = document.getElementById('projetsGrid'); if(!grid) return;
+  grid.style.gridTemplateColumns = '1fr';
+  grid.innerHTML = renderComparisonHTML();
+}
+function exitComparison(){
+  compareMode = false; compareSelected.clear();
+  const grid = document.getElementById('projetsGrid'); if(grid) grid.style.gridTemplateColumns = '';
+  renderProjets();
+}
+function addCompareCriterion(key){
+  if(!key || compareCriteria.includes(key)) return;
+  compareCriteria.push(key); saveCompareCriteria(); showComparison();
+}
+function removeCompareCriterion(key){
+  compareCriteria = compareCriteria.filter(k => k!==key); saveCompareCriteria(); showComparison();
+}
+
+function renderComparisonHTML(){
+  const projects = savedProjects.filter(p => compareSelected.has(p.id));
+  const cols = compareCriteria.map(k => COMPARE_CRITERIA.find(c=>c.key===k)).filter(Boolean);
+  const others = COMPARE_CRITERIA.filter(c => !compareCriteria.includes(c.key));
+  return `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;">
+      <button onclick="exitComparison()" class="projet-action-btn" style="display:inline-flex;align-items:center;gap:6px;padding:8px 14px;">← Retour aux projets</button>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="font-size:13px;color:var(--text2);">${projects.length} projet${projects.length>1?'s':''} comparé${projects.length>1?'s':''} · ${cols.length} critère${cols.length>1?'s':''}</span>
+        ${others.length ? `
+          <select onchange="addCompareCriterion(this.value);this.value='';" style="background:var(--bg3);color:var(--gold);border:1px solid var(--border2);border-radius:8px;padding:8px 14px;font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;font-weight:600;outline:none;">
+            <option value="">+ Ajouter un critère</option>
+            ${others.map(c => `<option value="${c.key}">${c.label}</option>`).join('')}
+          </select>` : ''}
+      </div>
+    </div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius);background:var(--card);">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;">
+        <thead>
+          <tr style="background:var(--card2);">
+            <th style="text-align:left;padding:14px 16px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.06em;font-weight:600;">Critère</th>
+            ${projects.map(p => `<th style="text-align:left;padding:14px 16px;border-bottom:1px solid var(--border);min-width:180px;">
+              <div style="font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:var(--text);">${p.name||'—'}</div>
+              <div style="font-size:11px;color:var(--text3);margin-top:3px;">${(p.ville||'')}${p.quartier?' · '+p.quartier:''}</div>
+            </th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${cols.map((c,i) => `
+            <tr style="background:${i%2 ? 'rgba(255,255,255,0.015)' : 'transparent'};">
+              <td style="padding:11px 16px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border);">
+                <span style="display:inline-flex;align-items:center;gap:8px;">
+                  ${c.label}
+                  <button onclick="removeCompareCriterion('${c.key}')" title="Retirer ce critère" style="background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;opacity:0.4;line-height:1;padding:0 4px;" onmouseover="this.style.opacity='1';this.style.color='var(--red)'" onmouseout="this.style.opacity='0.4';this.style.color='var(--text3)'">×</button>
+                </span>
+              </td>
+              ${projects.map(p => {
+                const val = c.get(p);
+                const color = c.color ? c.color(p) : 'var(--text)';
+                const weight = c.color ? 600 : 400;
+                return `<td style="padding:11px 16px;border-bottom:1px solid var(--border);color:${color};font-weight:${weight};">${val}</td>`;
+              }).join('')}
+            </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+}
+
 async function renderProjets() {
   const grid = document.getElementById('projetsGrid');
   if (!grid) return;
@@ -143,13 +255,37 @@ async function renderProjets() {
     return;
   }
 
-  grid.innerHTML = savedProjects.map(p => {
+  // Barre d'actions (mode comparaison)
+  const headerBar = `<div style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:6px;">
+    <div style="font-size:13px;color:var(--text2);">
+      ${compareMode
+        ? `<strong style="color:var(--gold);">Mode comparaison</strong> · cochez les projets à comparer (${compareSelected.size} sélectionné${compareSelected.size>1?'s':''})`
+        : `${savedProjects.length} projet${savedProjects.length>1?'s':''} sauvegardé${savedProjects.length>1?'s':''}`}
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${compareMode ? `
+        <button onclick="showComparison()" ${compareSelected.size<2?'disabled':''} style="padding:8px 16px;background:linear-gradient(135deg,var(--gold),var(--gold2));border:none;border-radius:8px;color:#0a0d14;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;cursor:${compareSelected.size<2?'not-allowed':'pointer'};opacity:${compareSelected.size<2?0.5:1};">Voir la comparaison${compareSelected.size>=2?` (${compareSelected.size})`:''}</button>
+        <button onclick="toggleCompareMode()" style="padding:8px 14px;background:transparent;border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;">Annuler</button>
+      ` : `
+        <button onclick="toggleCompareMode()" ${savedProjects.length<2?'disabled':''} style="padding:8px 16px;background:rgba(45,212,191,0.12);border:1px solid rgba(45,212,191,0.3);border-radius:8px;color:var(--teal);font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;cursor:${savedProjects.length<2?'not-allowed':'pointer'};opacity:${savedProjects.length<2?0.5:1};display:inline-flex;align-items:center;gap:6px;">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3H5a2 2 0 00-2 2v14a2 2 0 002 2h4M15 3h4a2 2 0 012 2v14a2 2 0 01-2 2h-4M9 8h6M9 12h6M9 16h6"/></svg>
+          Comparer mes projets
+        </button>
+      `}
+    </div>
+  </div>`;
+
+  grid.innerHTML = headerBar + savedProjects.map(p => {
     const st = STATUS_CONFIG[p.status] || STATUS_CONFIG.etude;
     const cf = parseFloat(p.cashflow) || 0;
     const cfColor = cf >= 0 ? 'var(--green)' : 'var(--red)';
     const cfStr = (cf >= 0 ? '+' : '') + Math.round(cf) + ' €';
+    const selected = compareSelected.has(p.id);
+    const cardClick = compareMode ? `toggleProjectInCompare('${p.id}', event)` : `loadProject('${p.id}')`;
+    const cardBorder = (compareMode && selected) ? 'border-color:var(--gold);box-shadow:0 0 0 2px rgba(201,168,76,0.25);' : '';
     return `
-    <div class="projet-card" onclick="loadProject('${p.id}')">
+    <div class="projet-card" style="position:relative;${cardBorder}" onclick="${cardClick}">
+      ${compareMode ? `<div style="position:absolute;top:12px;left:12px;width:22px;height:22px;border-radius:6px;border:2px solid ${selected?'var(--gold)':'var(--border2)'};background:${selected?'var(--gold)':'transparent'};display:flex;align-items:center;justify-content:center;z-index:2;">${selected?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#0a0d14" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>':''}</div>` : ''}
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
         <span class="projet-card-badge ${p.type_bien === 'Apt' ? 'badge-apt' : 'badge-msn'}">
           ${p.type_bien === 'Apt' ? '🏠 Appartement' : '🏡 Maison'}
