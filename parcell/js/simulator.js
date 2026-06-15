@@ -215,11 +215,30 @@ function refreshColocInfo(){
 // ─── Toggles des paramètres Pro (prêt / durée / taux / assurance / vacance) ───
 function setSimOption(key, on){
   simOptions[key] = !!on;
-  // grise visuellement le champ correspondant
-  const map = { pret:['simApport','simDuree','simTaux','simAssur'], duree:['simDuree','dureeVal'], taux:['simTaux','tauxVal'], assurance:['simAssur','assurVal'], vacance:['simVacance','vacanceVal'] };
-  const ids = map[key] || []; const alpha = on ? '' : '0.4';
-  ids.forEach(id => { const el = document.getElementById(id); if(el && el.parentElement && el.parentElement.parentElement) el.parentElement.parentElement.style.opacity = alpha || ''; });
+  refreshOptionGreying();
   calcSim();
+}
+
+function refreshOptionGreying(){
+  const apply = (inputId, valId, off) => {
+    const i = document.getElementById(inputId);
+    const v = valId ? document.getElementById(valId) : null;
+    const o = off ? '0.4' : '';
+    if (i) {
+      // si le champ est entoure d'un wrapper (.field-prefix-wrap), on grise le wrapper
+      const wrap = i.parentElement && i.parentElement.classList.contains('field-prefix-wrap') ? i.parentElement : i;
+      wrap.style.opacity = o;
+      i.style.pointerEvents = off ? 'none' : '';
+    }
+    if (v) v.style.opacity = o;
+  };
+  const pretOn = simOptions.pret;
+  // si le prêt est désactivé, durée/taux/assurance n'ont plus de sens : grisés en cascade
+  apply('simApport',  null,         !pretOn);
+  apply('simDuree',   'dureeVal',   !pretOn || !simOptions.duree);
+  apply('simTaux',    'tauxVal',    !pretOn || !simOptions.taux);
+  apply('simAssur',   'assurVal',   !pretOn || !simOptions.assurance);
+  apply('simVacance', 'vacanceVal', !simOptions.vacance);
 }
 
 function onSimVilleChange(){
