@@ -59,9 +59,12 @@ async function onUserLoggedIn(user) {
     // Première fois : lancer l'app complète
     _appInitialized = true;
     initApp();
+    // Une fois les onglets injectés, on peut révéler le menu admin si is_admin
+    setTimeout(() => { if (typeof refreshAdminVisibility === 'function') refreshAdminVisibility(); }, 200);
   } else {
     // App déjà lancée en mode invité : juste recharger les projets
     if (typeof loadProjects === 'function') loadProjects();
+    if (typeof refreshAdminVisibility === 'function') refreshAdminVisibility();
     // Mettre à jour l'onglet Mon Espace si ouvert
     const compteSection = document.getElementById('tab-compte');
     if (compteSection?.classList.contains('active')) {
@@ -171,6 +174,8 @@ function refreshCompteTab() {
     profileEmail.textContent = currentUser?.email || '—';
     if (profileBig) profileBig.textContent = name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
   }
+  // Revele le menu Administration si l'utilisateur est admin
+  if (typeof refreshAdminVisibility === 'function') refreshAdminVisibility();
 }
 
 // ══════════════════════════════════════════
