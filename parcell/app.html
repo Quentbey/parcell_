@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Parcell · Simulateur et analyse immobilière</title>
-<meta name="description" content="Simulateur de rentabilité locative et analyse comparative de 775 villes françaises.">
+<meta name="description" content="Simulateur de rentabilité locative et analyse comparative de villes françaises.">
 <meta name="robots" content="noindex,follow">
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -103,7 +103,7 @@
     <div class="page-header" id="pageHeader">
       <span class="eyebrow"><span class="dot"></span> <span id="phEyebrow">Outil</span></span>
       <h1 id="phTitle">Analyse des villes</h1>
-      <p class="ph-desc" id="phDesc">Comparez prix, loyers, tension locative et attractivité de 775 villes françaises, côte à côte.</p>
+      <p class="ph-desc" id="phDesc">Comparez prix, loyers, tension locative et attractivité de villes françaises, côte à côte.</p>
     </div>
 
     <!-- Onglets chargés dynamiquement par app.js -->
@@ -157,14 +157,14 @@
 <script src="js/auth.js?v=3"></script>
 <script src="js/simulator.js?v=11"></script>
 <script src="js/projects.js?v=5"></script>
-<script src="js/app.js?v=7"></script>
+<script src="js/app.js?v=8"></script>
 
 <!-- Cohérence : nav active + en-tête de page selon l'onglet + ancres -->
 <script>
 (function(){
   var PH = {
     simulateur:{eyebrow:'Outil',title:'Simulateur de rentabilité',desc:'Calculez en détail le rendement, la mensualité et le cashflow de votre projet locatif.'},
-    analyse:   {eyebrow:'Outil',title:'Analyse des villes',desc:'Comparez prix, loyers, tension locative et attractivité de 775 villes françaises, côte à côte.'},
+    analyse:   {eyebrow:'Outil',title:'Analyse des villes',desc:'Comparez prix, loyers, tension locative et attractivité de villes françaises, côte à côte.'},
     compte:    {eyebrow:'Espace personnel',title:'Mes projets',desc:'Retrouvez vos simulations sauvegardées et gérez votre profil.'}
   };
   window.updateActiveNav = function(tab){
