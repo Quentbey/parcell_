@@ -253,6 +253,7 @@ function renderCompteTab() {
       <div class="compte-nav-item" id="cnav-profil" onclick="showCompteSection('profil')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 10-16 0"/></svg>Mon profil</div>
       <div class="compte-nav-item" id="cnav-notifs" onclick="showCompteSection('notifs')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>Notifications</div>
       <div class="compte-nav-item" id="cnav-abonnement" onclick="showCompteSection('abonnement')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>Abonnement</div>
+      <div class="compte-nav-item" id="cnav-admin" onclick="showCompteSection('admin')" style="display:none;color:var(--gold);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Administration</div>
       <div class="compte-stats">
         <div class="compte-stat"><div class="compte-stat-val" id="stat-projets">0</div><div class="compte-stat-label">Projets</div></div>
         <div class="compte-stat"><div class="compte-stat-val" id="stat-simulations">0</div><div class="compte-stat-label">Simulations</div></div>
@@ -301,6 +302,10 @@ function renderCompteTab() {
           <div style="font-size:12px;color:var(--text2);line-height:1.8;margin-bottom:14px;">✅ Tout du gratuit · ✅ Projets illimités · ✅ Mode Pro · ✅ Export PDF · ✅ Alertes prix · ✅ DVF réel</div>
           <button style="padding:10px 20px;background:var(--gold);border:none;border-radius:8px;color:#0a0d14;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;cursor:not-allowed;opacity:0.6;">Bientôt disponible</button>
         </div>
+      </div>
+      <div id="csection-admin" class="compte-section" style="display:none;">
+        <div class="compte-section-title">🛡️ Administration</div>
+        <div id="adminPanel" style="font-size:13px;color:var(--text3);">Chargement…</div>
       </div>
     </div>
   </div>
@@ -368,13 +373,14 @@ function switchTab(tab, el) {
 
 // ── Compte sections ──
 function showCompteSection(section) {
-  ['projets','profil','notifs','abonnement'].forEach(s => {
+  ['projets','profil','notifs','abonnement','admin'].forEach(s => {
     const el  = document.getElementById('csection-' + s);
     const nav = document.getElementById('cnav-' + s);
     if (el) el.style.display = s === section ? 'block' : 'none';
     if (nav) nav.classList.toggle('active', s === section);
   });
   if (section === 'projets') renderProjets();
+  if (section === 'admin' && typeof loadAdminData === 'function') loadAdminData();
 }
 
 // ── Profil ──
