@@ -38,8 +38,13 @@ LYON_QUARTIERS.forEach(q => { CP_TO_QUARTIER[q.cp] = q.code; });
 // État simulateur
 let simType = 'Apt', simMeuble = true, simMode = 'simple';
 let simColoc = { on: false, n: 2 };   // Colocation : actif + nombre de colocataires
+// Cases à cocher des paramètres Pro (toutes activées par défaut)
+let simOptions = { pret: true, duree: true, taux: true, assurance: true, vacance: true };
 let activeOpts = new Set();
 let simData = {};
+
+// Valeur spéciale du champ Ville pour activer le mode "Ville personnalisée"
+const CUSTOM_CITY = 'Ville personnalisée';
 
 // État tri tableau
 let sortKey = 'Attractivite', sortAsc = false;
@@ -405,12 +410,18 @@ function onSimVilleInput() {
       matches = matches.concat(extra);
     }
   }
+  // Entrée spéciale "Ville personnalisée", toujours en premier
+  const customRow = `<div style="padding:10px 13px;cursor:pointer;font-size:13px;color:var(--gold);border-bottom:1px solid var(--border2);font-weight:600;background:rgba(201,168,76,0.06);"
+      onmousedown="pickSimVille('${CUSTOM_CITY}')"
+      onmouseover="this.style.background='rgba(201,168,76,0.12)'"
+      onmouseout="this.style.background='rgba(201,168,76,0.06)'"
+    >✦ Ville personnalisée <span style="color:var(--text3);font-size:11px;font-weight:400;">(loyer m² et tension réglables)</span></div>`;
   if (!matches.length) {
-    dd.innerHTML = '<div style="padding:10px 13px;color:var(--text3);font-size:13px;">Aucune ville</div>';
+    dd.innerHTML = customRow + '<div style="padding:10px 13px;color:var(--text3);font-size:13px;">Aucune ville correspondante</div>';
     dd.style.display = 'block';
     return;
   }
-  dd.innerHTML = matches.map(v => `<div style="padding:9px 13px;cursor:pointer;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);"
+  dd.innerHTML = customRow + matches.map(v => `<div style="padding:9px 13px;cursor:pointer;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);"
       onmousedown="pickSimVille('${v.Ville.replace(/'/g, "\\'")}')"
       onmouseover="this.style.background='var(--bg3)'"
       onmouseout="this.style.background=''"
