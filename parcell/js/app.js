@@ -45,7 +45,7 @@ function renderAnalyseTab() {
       Bientôt disponible
     </div>
     <p style="color:var(--text2);font-size:15px;line-height:1.6;max-width:480px;margin:0 auto 24px;">
-      Le module de comparaison des 775 villes (prix, loyers, tension locative, attractivité, carte interactive) arrive très bientôt.
+      Le module de comparaison des villes (prix, loyers, tension locative, attractivité, carte interactive) arrive très bientôt.
       En attendant, le simulateur reste pleinement fonctionnel.
     </p>
     <a href="#simulateur" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:8px;padding:12px 22px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0a0d14;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;text-decoration:none;">
@@ -218,7 +218,16 @@ function renderSimulateurTab() {
           <div class="detail-badge" style="position:static;flex-shrink:0;" onclick="openDrawer('cashflow')">📈</div>
         </div>
       </div>
-      <button class="more-btn" onclick="openDrawer('marche')">🏘️ Marché local &amp; tension locative →</button>
+      <div onclick="openDrawer('marche')" id="marketCard" style="cursor:pointer;background:linear-gradient(135deg,rgba(45,212,191,0.08),rgba(201,168,76,0.05));border:1px solid rgba(45,212,191,0.25);border-radius:var(--radius);padding:14px 16px;margin:14px 0 12px;display:flex;align-items:center;gap:14px;transition:all 0.2s;">
+        <div style="width:42px;height:42px;border-radius:10px;background:rgba(45,212,191,0.15);border:1px solid rgba(45,212,191,0.3);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-family:'Outfit',sans-serif;font-size:14px;font-weight:700;color:var(--text);margin-bottom:2px;">Marché local et tension locative</div>
+          <div style="font-size:11.5px;color:var(--text2);" id="marketCardHint">Prix m², loyer de référence, attractivité de la ville</div>
+        </div>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
       <button class="save-btn" onclick="currentUser ? openSaveModal() : showAuthModal('login')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
         Sauvegarder ce projet
