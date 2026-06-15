@@ -33,71 +33,25 @@ function renderTabContents() {
 function renderAnalyseTab() {
   return `
 <div id="tab-analyse" class="tab-content active">
-  <div class="search-bar">
-    <div class="sg"><label>Région</label>
-      <select id="regionSel" onchange="onRegionChange()"><option value="">Toutes les régions</option></select>
+  <div style="max-width:640px;margin:48px auto;padding:48px 32px;text-align:center;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);">
+    <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,rgba(45,212,191,0.18),rgba(45,212,191,0.05));border:1px solid rgba(45,212,191,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M3 3v18h18"/><path d="M7 14l3 -3 4 4 5 -7"/>
+      </svg>
     </div>
-    <div class="sg"><label>Département</label>
-      <select id="deptSel" onchange="onDeptChange()"><option value="">Tous les départements</option></select>
+    <h2 style="font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.02em;margin-bottom:10px;">Analyse des villes</h2>
+    <div style="display:inline-flex;align-items:center;gap:8px;padding:5px 14px;background:rgba(45,212,191,0.12);border:1px solid rgba(45,212,191,0.25);border-radius:30px;font-size:13px;color:var(--teal);font-weight:600;margin-bottom:18px;">
+      <span style="width:7px;height:7px;border-radius:50%;background:var(--teal);"></span>
+      Bientôt disponible
     </div>
-    <div class="sg" style="flex:2"><label>Ajouter une ville</label>
-      <div style="position:relative;">
-        <input type="text" id="citySearch" placeholder="Taper ou choisir dans la liste…"
-          oninput="onCityInput()" onfocus="showCityDropdown()" onblur="hideCityDropdown()" autocomplete="off"
-          style="background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius-sm);color:var(--text);padding:9px 12px;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s;width:100%;">
-        <div id="cityDropdown" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:100;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);max-height:220px;overflow-y:auto;margin-top:3px;box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
-      </div>
-    </div>
-  </div>
-
-  <div id="chipsSection" style="display:none;margin-bottom:18px;">
-    <div class="chips-selected-label">Villes sélectionnées — cliquer pour retirer</div>
-    <div class="chips-wrap" id="chipsWrap"></div>
-  </div>
-
-  <div class="sources-bar">
-    <span>Sources :</span>
-    <a href="https://www.insee.fr/fr/statistiques/serie/001641536" target="_blank">Population → INSEE</a>
-    <a href="https://cerema.fr" target="_blank">Prix m² → DVF / CEREMA</a>
-    <a href="https://www.locservice.fr" target="_blank">Tension → LocService 2024</a>
-    <a href="https://www.insee.fr/fr/statistiques/2021266" target="_blank">Salaires → INSEE DADS</a>
-  </div>
-
-  <div class="section"><div class="section-title">Vue d'ensemble</div><div class="grid-4" id="kpiCards"></div></div>
-
-  <div class="grid-2" style="margin-bottom:22px;">
-    <div>
-      <div class="section-title">Carte interactive <span id="mapHint" style="font-size:11px;color:var(--text3);font-weight:400;">· Zoom pour délimitations</span></div>
-      <div class="map-card"><div id="leafletMap"></div></div>
-    </div>
-    <div>
-      <div class="section-title">Classement attractivité</div>
-      <div class="card" style="padding:16px 18px;min-height:400px;"><div id="attrRanking"></div></div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-title">Tableau comparatif <small style="font-size:12px;color:var(--text3);font-weight:400;font-family:'DM Sans'">villes sélectionnées · cliquer pour retirer</small></div>
-    <div class="table-wrap">
-      <table id="mainTable" style="display:none;">
-        <thead><tr>
-          <th id="th-Ville" onclick="sortByCol('Ville')">Ville</th>
-          <th id="th-Dept" onclick="sortByCol('Dept')">Département</th>
-          <th id="th-2022" onclick="sortByCol('2022')">Population</th>
-          <th id="th-Prix_m2" onclick="sortByCol('Prix_m2')">Prix m²</th>
-          <th id="th-Loyer_m2_Apt" onclick="sortByCol('Loyer_m2_Apt')">Loyer réel</th>
-          <th id="th-Tension" onclick="sortByCol('Tension')">Tension loc.</th>
-          <th id="th-Attractivite" onclick="sortByCol('Attractivite')">Attractivité</th>
-        </tr></thead>
-        <tbody id="tableBody"></tbody>
-      </table>
-    </div>
-    <div id="tableEmpty" style="text-align:center;padding:36px;color:var(--text3);font-size:14px;">Sélectionnez des villes via la recherche ou la carte.</div>
-  </div>
-
-  <div class="grid-2" style="margin-bottom:32px;">
-    <div class="chart-card"><div class="chart-title">📈 Évolution population 1970–2022</div><canvas id="popChart"></canvas></div>
-    <div class="chart-card"><div class="chart-title">💶 Prix m² vs Salaire médian</div><canvas id="salPriceChart"></canvas></div>
+    <p style="color:var(--text2);font-size:15px;line-height:1.6;max-width:480px;margin:0 auto 24px;">
+      Le module de comparaison des 775 villes (prix, loyers, tension locative, attractivité, carte interactive) arrive très bientôt.
+      En attendant, le simulateur reste pleinement fonctionnel.
+    </p>
+    <a href="#simulateur" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:8px;padding:12px 22px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0a0d14;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;text-decoration:none;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
+      Aller au simulateur
+    </a>
   </div>
 </div>`;
 }
@@ -128,6 +82,21 @@ function renderSimulateurTab() {
       <div class="input-block" style="position:relative;"><label>Ville</label>
         <input class="field" type="text" id="simVille" autocomplete="off" placeholder="Tapez une ville (ex: Lyon)" oninput="onSimVilleInput()" onfocus="onSimVilleInput()" onblur="hideSimVilleDropdown()">
         <div id="simVilleDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:260px;overflow-y:auto;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);z-index:30;box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
+      </div>
+
+      <!-- Bloc ville personnalisée (apparaît uniquement quand "Ville personnalisée" est choisie) -->
+      <div class="input-block" id="customCityBlock" style="display:none;background:rgba(201,168,76,0.05);border:1px solid rgba(201,168,76,0.2);border-radius:var(--radius-sm);padding:14px;margin-top:-4px;">
+        <div style="font-size:12px;color:var(--gold);font-weight:600;margin-bottom:10px;">✦ Paramètres de la ville personnalisée</div>
+        <div class="input-row" style="display:flex;gap:12px;">
+          <div style="flex:1;">
+            <label style="font-size:11px;color:var(--text2);">Loyer (€/m²)</label>
+            <input class="field" type="number" id="customLoyer" value="12" step="0.5" min="0" oninput="updateSimLoyer()">
+          </div>
+          <div style="flex:1;">
+            <label style="font-size:11px;color:var(--text2);">Tension locative : <span id="customTensionVal" class="range-val">5/10</span></label>
+            <input type="range" id="customTension" min="1" max="10" step="1" value="5" oninput="document.getElementById('customTensionVal').textContent=this.value+'/10';updateSimLoyer()">
+          </div>
+        </div>
       </div>
       <div class="input-block" id="quartierBlock" style="display:none;"><label>Quartier <span style="color:var(--teal);font-size:11px;">· influe sur le loyer</span></label>
         <select class="field" id="simQuartier" onchange="updateSimLoyer()"></select>
@@ -213,11 +182,12 @@ function renderSimulateurTab() {
           <div style="flex:1"><label>Frais de notaire (€)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simNotaire" value="11250" oninput="calcSim()"></div></div>
           <div style="flex:1"><label>Travaux / Meubles (€)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simTravaux" value="10000" oninput="calcSim()"></div></div>
         </div></div>
+        <div class="input-block"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="opt-pret" checked onchange="setSimOption('pret', this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--gold);"><span>Financer par un prêt bancaire</span></label></div>
         <div class="input-block"><label>Apport personnel (€)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simApport" value="20000" oninput="syncField('simApportS','simApport');calcSim()"></div></div>
-        <div class="input-block"><label>Durée du prêt : <span id="dureeVal" class="range-val">20 ans</span></label><input type="range" id="simDuree" min="10" max="25" value="20" oninput="document.getElementById('dureeVal').textContent=this.value+' ans';calcSim()"></div>
-        <div class="input-block"><label>Taux d'intérêt : <span id="tauxVal" class="range-val">3.6%</span></label><input type="range" id="simTaux" min="1" max="7" step="0.1" value="3.6" oninput="document.getElementById('tauxVal').textContent=parseFloat(this.value).toFixed(1)+'%';calcSim()"></div>
-        <div class="input-block"><label>Assurance emprunteur : <span id="assurVal" class="range-val">0.20%</span></label><input type="range" id="simAssur" min="0.10" max="0.50" step="0.01" value="0.20" oninput="document.getElementById('assurVal').textContent=parseFloat(this.value).toFixed(2)+'%';calcSim()"></div>
-        <div class="input-block"><label>Vacance locative : <span id="vacanceVal" class="range-val">1 mois/an</span></label><input type="range" id="simVacance" min="0" max="3" step="0.5" value="1" oninput="document.getElementById('vacanceVal').textContent=this.value+' mois/an';calcSim()"></div>
+        <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-duree" checked onchange="setSimOption('duree', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Durée du prêt : <span id="dureeVal" class="range-val">20 ans</span></span></label><input type="range" id="simDuree" min="10" max="25" value="20" oninput="document.getElementById('dureeVal').textContent=this.value+' ans';calcSim()"></div>
+        <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-taux" checked onchange="setSimOption('taux', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Taux d'intérêt : <span id="tauxVal" class="range-val">3.6%</span></span></label><input type="range" id="simTaux" min="1" max="7" step="0.1" value="3.6" oninput="document.getElementById('tauxVal').textContent=parseFloat(this.value).toFixed(1)+'%';calcSim()"></div>
+        <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-assurance" checked onchange="setSimOption('assurance', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Assurance emprunteur : <span id="assurVal" class="range-val">0.20%</span></span></label><input type="range" id="simAssur" min="0.10" max="0.50" step="0.01" value="0.20" oninput="document.getElementById('assurVal').textContent=parseFloat(this.value).toFixed(2)+'%';calcSim()"></div>
+        <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-vacance" checked onchange="setSimOption('vacance', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Vacance locative : <span id="vacanceVal" class="range-val">1 mois/an</span></span></label><input type="range" id="simVacance" min="0" max="3" step="0.5" value="1" oninput="document.getElementById('vacanceVal').textContent=this.value+' mois/an';calcSim()"></div>
         <div class="input-block"><label>Charges copro (€/mois)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simCopro" value="0" oninput="calcSim()"></div></div>
       </div>
     </div>
