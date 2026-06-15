@@ -211,10 +211,13 @@
   <div class="wrap news reveal">
     <h2>Restez informé des bonnes opportunités</h2>
     <p style="color:var(--text2);margin-top:10px;">Recevez nos analyses de villes et conseils d'investissement locatif. Pas de spam, désinscription en un clic.</p>
-    <form name="newsletter" method="POST" data-netlify="true" netlify-honeypot="bot-field" class="news-form" id="newsForm">
-      <input type="hidden" name="form-name" value="newsletter">
+    <!-- Formulaire newsletter compatible Brevo (Sendinblue).
+         Pour activer la collecte : creer un formulaire dans Brevo,
+         recuperer son URL "action" (format https://[ID].sibforms.com/serve/...),
+         et la coller dans l'attribut data-action ci-dessous. -->
+    <form class="news-form" id="newsForm" data-action="[À COMPLÉTER : URL Brevo (ou Mailchimp)]" method="POST" novalidate>
       <p style="display:none;"><label>Ne pas remplir : <input name="bot-field"></label></p>
-      <input type="email" name="email" required placeholder="vous@email.fr" aria-label="Votre adresse email">
+      <input type="email" name="EMAIL" required placeholder="vous@email.fr" aria-label="Votre adresse email">
       <button class="btn btn-primary" type="submit">S'inscrire</button>
     </form>
     <div class="news-ok" id="newsOk" style="display:none;">Merci, votre inscription est bien prise en compte.</div>
@@ -285,13 +288,18 @@
   }
   if(mp&&ml){mp.addEventListener('input',miniCalc);ml.addEventListener('input',miniCalc);miniCalc();}
 
-  // Capture email (compatible Netlify Forms + confirmation immédiate)
+  // Capture email : envoi vers Brevo (ou Mailchimp) si data-action est configuré.
+  // Sinon, on confirme localement (la collecte ne se fera qu'apres configuration).
   var nf=document.getElementById('newsForm');
   if(nf)nf.addEventListener('submit',function(e){
     e.preventDefault();
-    try{fetch('/',{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(new FormData(nf)).toString()}).catch(function(){});}catch(_){}
+    var action = (nf.getAttribute('data-action')||'').trim();
+    var configured = action && action.indexOf('À COMPLÉTER') === -1 && /^https?:\/\//.test(action);
+    if (configured) {
+      try { fetch(action, { method:'POST', body:new FormData(nf), mode:'no-cors' }).catch(function(){}); } catch(_){}
+    }
     nf.style.display='none';
-    var ok=document.getElementById('newsOk'); if(ok)ok.style.display='block';
+    var ok=document.getElementById('newsOk'); if(ok) ok.style.display='block';
   });
 
   var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
