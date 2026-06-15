@@ -1,0 +1,20 @@
+# Cloudflare Pages : headers pour toutes les routes
+
+/*
+  X-Frame-Options: SAMEORIGIN
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: camera=(), microphone=(), geolocation=(self), interest-cohort=()
+
+# Cache long pour les assets statiques versionnes (?v=N casse le cache si besoin)
+
+/css/*
+  Cache-Control: public, max-age=31536000, immutable
+
+/js/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Page HTML : pas de cache long (sinon les versions js ne se rechargent pas)
+
+/*.html
+  Cache-Control: public, max-age=300, must-revalidate
