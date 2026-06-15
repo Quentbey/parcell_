@@ -92,6 +92,7 @@ function renderKPIs(){
 
 // ═══ MAP ═══
 function initMap(){
+  if(!document.getElementById('leafletMap')) return; // analyse retiree (placeholder)
   leafletMap=L.map('leafletMap',{center:[46.2,4.5],zoom:6});
   // Tuiles sombres (design cohérent) avec labels en français via CartoDB Dark Matter
   // CartoDB utilise les données OSM et affiche les noms en langue locale (FR en France)
@@ -194,58 +195,119 @@ function renderSalPriceChart(){const sel=VILLES.filter(c=>selectedCities.include
 function setType(t){simType=t;document.getElementById('btnApt').classList.toggle('active',t==='Apt');document.getElementById('btnMsn').classList.toggle('active',t==='Msn');updateSimLoyer();}
 function setMeuble(v){simMeuble=v;document.getElementById('btnMeuble').classList.toggle('active',v);document.getElementById('btnNonMeuble').classList.toggle('active',!v);document.getElementById('meublePct').disabled=!v;document.getElementById('meublePct').style.opacity=v?1:0.4;updateSimLoyer();}
 
+// ─── Colocation ───
+const COLOC_BONUS = { 2: 0.10, 3: 0.20, 4: 0.25, 5: 0.30 };
+function _colocBonus(){ return simColoc.on ? (COLOC_BONUS[Math.min(simColoc.n, 5)] || 0) : 0; }
+function setColoc(on){
+  simColoc.on = !!on;
+  const off = document.getElementById('btnColocOff'); if(off) off.classList.toggle('active', !on);
+  const onB = document.getElementById('btnColocOn');  if(onB) onB.classList.toggle('active', !!on);
+  const wrap = document.getElementById('colocCountWrap'); if(wrap) wrap.style.display = on ? 'flex' : 'none';
+  refreshColocInfo();
+  updateSimLoyer();
+}
+function setColocN(n){ simColoc.n = parseInt(n) || 2; refreshColocInfo(); updateSimLoyer(); }
+function refreshColocInfo(){
+  const el = document.getElementById('colocBonusInfo'); if(!el) return;
+  el.textContent = simColoc.on ? ('+' + Math.round(_colocBonus()*100) + '% loyer') : '';
+}
+
+// ─── Toggles des paramètres Pro (prêt / durée / taux / assurance / vacance) ───
+function setSimOption(key, on){
+  simOptions[key] = !!on;
+  // grise visuellement le champ correspondant
+  const map = { pret:['simApport','simDuree','simTaux','simAssur'], duree:['simDuree','dureeVal'], taux:['simTaux','tauxVal'], assurance:['simAssur','assurVal'], vacance:['simVacance','vacanceVal'] };
+  const ids = map[key] || []; const alpha = on ? '' : '0.4';
+  ids.forEach(id => { const el = document.getElementById(id); if(el && el.parentElement && el.parentElement.parentElement) el.parentElement.parentElement.style.opacity = alpha || ''; });
+  calcSim();
+}
+
 function onSimVilleChange(){
   const ville=document.getElementById('simVille').value;
-  const city=VILLES.find(c=>c.Ville===ville);
-  const qBlock=document.getElementById('quartierBlock'),qSel=document.getElementById('simQuartier');
-  if(city&&city.hasQuartiers){qBlock.style.display='block';qSel.innerHTML=LYON_QUARTIERS.map(q=>`<option value="${q.code}">${q.nom}</option>`).join('');}
-  else{qBlock.style.display='none';qSel.innerHTML='';}
+  const qBlock=document.getElementById('quartierBlock'), qSel=document.getElementById('simQuartier');
+  const customBlock=document.getElementById('customCityBlock');
+
+  if(ville===CUSTOM_CITY){
+    if(qBlock) qBlock.style.display='none';
+    if(qSel) qSel.innerHTML='';
+    if(customBlock) customBlock.style.display='block';
+  } else {
+    if(customBlock) customBlock.style.display='none';
+    const city=VILLES.find(c=>c.Ville===ville);
+    if(city && city.hasQuartiers){
+      if(qBlock) qBlock.style.display='block';
+      if(qSel) qSel.innerHTML=LYON_QUARTIERS.map(q=>`<option value="${q.code}">${q.nom}</option>`).join('');
+    } else {
+      if(qBlock) qBlock.style.display='none';
+      if(qSel) qSel.innerHTML='';
+    }
+  }
   updateSimLoyer();
 }
 
 function updateSimLoyer(){
   const ville=document.getElementById('simVille').value;
-  const city=VILLES.find(c=>c.Ville===ville);if(!city)return;
-  const qCode=document.getElementById('simQuartier').value;
-  let lyrBase,prixRef,tension;
-  if(city.hasQuartiers&&qCode){
-    const q=LYON_QUARTIERS.find(x=>x.code===qCode);
-    if(q){lyrBase=simType==='Apt'?q.loyer_apt:q.loyer_msn;prixRef=q.prix_m2;tension=q.Tension;}
+  let cityName=ville, lyrBase, tension, qLabel='';
+
+  if(ville===CUSTOM_CITY){
+    // Ville personnalisée : on prend les valeurs saisies par l'utilisateur
+    lyrBase = parseFloat(document.getElementById('customLoyer')?.value) || 12;
+    tension = parseFloat(document.getElementById('customTension')?.value) || 5;
+    cityName = 'Ville personnalisée';
+  } else {
+    const city=VILLES.find(c=>c.Ville===ville); if(!city) return;
+    const qCode=document.getElementById('simQuartier').value;
+    if(city.hasQuartiers && qCode){
+      const q=LYON_QUARTIERS.find(x=>x.code===qCode);
+      if(q){ lyrBase=simType==='Apt'?q.loyer_apt:q.loyer_msn; tension=q.Tension; qLabel=' · '+qCode; }
+    }
+    if(!lyrBase){ lyrBase=simType==='Apt'?city.Loyer_m2_Apt:city.Loyer_m2_Msn; tension=city.Tension; }
+    cityName=city.Ville;
   }
-  if(!lyrBase){lyrBase=simType==='Apt'?city.Loyer_m2_Apt:city.Loyer_m2_Msn;prixRef=city.Prix_m2;tension=city.Tension;}
 
   const surf=parseFloat(document.getElementById(simMode==='simple'?'simSurfS':'simSurf').value)||45;
   const pcs=parseInt(document.getElementById('simPcs').value)||2;
   const coef={1:1.2,2:1.0,3:0.9,4:0.85,5:0.8,6:0.75}[pcs]||0.9;
-  const meublePct=simMeuble&&simMode==='pro'?(parseFloat(document.getElementById('meublePct').value)||15)/100:simMode==='simple'?0:0;
-  // Bonus équipements (mode pro)
+  const meublePct=simMeuble&&simMode==='pro'?(parseFloat(document.getElementById('meublePct').value)||15)/100:0;
   let optBonus=0;
-  if(simMode==='pro'){activeOpts.forEach(o=>optBonus+=OPT_BONUS[o]||0);}
-  const loyer=Math.round(lyrBase*surf*coef*(1+meublePct)*(1+optBonus));
+  if(simMode==='pro'){ activeOpts.forEach(o=>optBonus+=OPT_BONUS[o]||0); }
+  const colocBonus = simMode==='pro' ? _colocBonus() : 0;
+  const loyer=Math.round(lyrBase*surf*coef*(1+meublePct)*(1+optBonus)*(1+colocBonus));
 
   document.getElementById('simLoyer').value=loyer;
-  const qLabel=city.hasQuartiers&&qCode?' · '+qCode:'';
-  const tLabel=`Tension ${tensionLabel(tension)} (${tension}/10)`;
-  document.getElementById('lyrInfo').textContent=`${city.Ville}${qLabel} · ${lyrBase}€/m² · ${tLabel}`;
+  const tLabel = `Tension ${tensionLabel(tension)} (${tension}/10)`;
+  document.getElementById('lyrInfo').textContent = `${cityName}${qLabel} · ${lyrBase}€/m² · ${tLabel}`;
   calcSim();
 }
 
 function calcSim(){
   const isSimple=simMode==='simple';
+  const O = (typeof simOptions !== 'undefined') ? simOptions : { pret:true, duree:true, taux:true, assurance:true, vacance:true };
+
   const prix=parseFloat(document.getElementById(isSimple?'simPrixS':'simPrix').value)||0;
   const notaire=isSimple?Math.round(prix*0.075):parseFloat(document.getElementById('simNotaire').value)||0;
   const travaux=isSimple?5000:parseFloat(document.getElementById('simTravaux').value)||0;
   const apport=parseFloat(document.getElementById(isSimple?'simApportS':'simApport').value)||0;
-  const duree=isSimple?20:parseInt(document.getElementById('simDuree').value)||20;
-  const taux=isSimple?3.6:parseFloat(document.getElementById('simTaux').value)||3.6;
   const loyer=parseFloat(document.getElementById('simLoyer').value)||0;
-  const assurPct=isSimple?0.20:parseFloat(document.getElementById('simAssur').value)||0.20;
-  const vacance=isSimple?1:parseFloat(document.getElementById('simVacance').value)||1;
   const copro=isSimple?0:parseFloat(document.getElementById('simCopro').value)||0;
 
-  const total=prix+notaire+travaux,pret=Math.max(0,total-apport);
-  const tauxM=(taux/100)/12,n=duree*12;
-  const mensualite=pret>0?pret*(tauxM*Math.pow(1+tauxM,n))/(Math.pow(1+tauxM,n)-1):0;
+  // En mode Pro, on respecte les cases à cocher. En Simple, les défauts.
+  const pretOn      = isSimple ? true  : O.pret;
+  const dureeOn     = isSimple ? true  : O.duree;
+  const tauxOn      = isSimple ? true  : O.taux;
+  const assuranceOn = isSimple ? true  : O.assurance;
+  const vacanceOn   = isSimple ? true  : O.vacance;
+
+  const duree    = !pretOn ? 0   : (dureeOn     ? (isSimple ? 20  : parseInt(document.getElementById('simDuree').value)||20)   : 20);
+  const taux     = !pretOn ? 0   : (tauxOn      ? (isSimple ? 3.6 : parseFloat(document.getElementById('simTaux').value)||3.6) : 0);
+  const assurPct = !pretOn ? 0   : (assuranceOn ? (isSimple ? 0.20: parseFloat(document.getElementById('simAssur').value)||0.20) : 0);
+  const vacance  = vacanceOn ? (isSimple ? 1 : parseFloat(document.getElementById('simVacance').value)||1) : 0;
+
+  const total=prix+notaire+travaux;
+  const pret = !pretOn ? 0 : Math.max(0,total-apport);
+  const tauxM=(taux/100)/12, n=duree*12;
+  const mensualite = (pret>0 && tauxM>0) ? pret*(tauxM*Math.pow(1+tauxM,n))/(Math.pow(1+tauxM,n)-1)
+                   : (pret>0 ? pret/n : 0);
   const assurMens=(pret*assurPct/100)/12;
   const loyerAjuste=loyer*(1-vacance/12);
   const chargesMens=total*0.005/12+copro;
