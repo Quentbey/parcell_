@@ -49,8 +49,16 @@
       <a href="#guides">Guides</a>
     </nav>
     <div class="nav-cta">
-      <a href="/app.html" class="btn btn-ghost">Connexion</a>
-      <a href="/app.html#simulateur" class="btn btn-primary">Lancer le simulateur</a>
+      <!-- Boutons par défaut (utilisateur non connecté) -->
+      <div id="navGuestHome" style="display:flex;align-items:center;gap:12px;">
+        <a href="/app.html" class="btn btn-ghost">Connexion</a>
+        <a href="/app.html#simulateur" class="btn btn-primary">Lancer le simulateur</a>
+      </div>
+      <!-- Chip utilisateur (révélé par JS si une session Supabase existe) -->
+      <a href="/app.html#compte" id="navUserHome" style="display:none;align-items:center;gap:10px;padding:6px 8px 6px 14px;background:var(--bg2);border:1px solid var(--border2);border-radius:30px;text-decoration:none;color:var(--text);font-size:13px;font-weight:600;transition:border-color .2s;">
+        <span id="navUserHomeName">Mon espace</span>
+        <span id="navUserHomeAvatar" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--teal),#6366f1);display:flex;align-items:center;justify-content:center;font-family:'Outfit',sans-serif;font-size:12px;font-weight:700;color:#fff;">?</span>
+      </a>
       <button class="nav-burger" id="navBurger" aria-label="Ouvrir le menu" aria-expanded="false">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
@@ -290,6 +298,36 @@
     </div>
   </div>
 </footer>
+
+<!-- Supabase SDK + config pour détecter une session active et basculer le nav -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
+<script src="js/config.js?v=3"></script>
+<script>
+// ── Détection session Supabase : remplace les boutons par le chip utilisateur ──
+(async function(){
+  try {
+    if (typeof supabaseClient === 'undefined') return;
+    const { data: { session } } = await supabaseClient.auth.getSession();
+    if (!session?.user) return;
+    const user = session.user;
+    // Lit le full_name depuis le profil pour avoir un libellé propre
+    let displayName = (user.user_metadata?.full_name || user.email || '').trim();
+    try {
+      const { data: prof } = await supabaseClient.from('profiles').select('full_name,email').eq('id', user.id).single();
+      if (prof?.full_name) displayName = prof.full_name;
+      else if (prof?.email) displayName = prof.email.split('@')[0];
+    } catch(_) {}
+    const guest = document.getElementById('navGuestHome');
+    const card  = document.getElementById('navUserHome');
+    const nameEl= document.getElementById('navUserHomeName');
+    const avEl  = document.getElementById('navUserHomeAvatar');
+    if (guest) guest.style.display = 'none';
+    if (card)  card.style.display  = 'inline-flex';
+    if (nameEl) nameEl.textContent = displayName.split(' ')[0] || 'Mon espace';
+    if (avEl)   avEl.textContent   = (displayName || '?').split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+  } catch(_) {}
+})();
+</script>
 
 <script>
 (function(){
