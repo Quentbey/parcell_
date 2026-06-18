@@ -31,27 +31,55 @@ function renderTabContents() {
 // ONGLET ANALYSE
 // ══════════════════════════════════════════
 function renderAnalyseTab() {
+  const exemples = [
+    { ville:'Lyon', dept:'Rhône (69)', pop:'522 000 hab.', prix:'5 100', loyer:'17,5', tension:'9,2', rdt:'4,1' },
+    { ville:'Saint-Étienne', dept:'Loire (42)', pop:'170 000 hab.', prix:'1 200', loyer:'9,8', tension:'7,5', rdt:'8,1' },
+    { ville:'Bordeaux', dept:'Gironde (33)', pop:'259 000 hab.', prix:'4 800', loyer:'15,0', tension:'8,8', rdt:'4,5' },
+  ];
+  const card = e => `<div style="background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;">
+    <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:17px;margin-bottom:3px;">${e.ville}</div>
+    <div style="font-size:11px;color:var(--text3);margin-bottom:16px;">${e.dept} · ${e.pop}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:2px;">Prix m²</div><div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:18px;color:var(--text);">${e.prix} €</div></div>
+      <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:2px;">Loyer m²</div><div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:18px;color:var(--teal);">${e.loyer} €</div></div>
+      <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:2px;">Tension</div><div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:18px;color:var(--gold);">${e.tension}/10</div></div>
+      <div><div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;font-weight:600;margin-bottom:2px;">Rdt brut</div><div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:18px;color:var(--green);">${e.rdt} %</div></div>
+    </div>
+  </div>`;
   return `
 <div id="tab-analyse" class="tab-content active">
-  <div style="max-width:640px;margin:48px auto;padding:48px 32px;text-align:center;background:var(--card);border:1px solid var(--border2);border-radius:var(--radius);">
-    <div style="width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,rgba(45,212,191,0.18),rgba(45,212,191,0.05));border:1px solid rgba(45,212,191,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 22px;">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M3 3v18h18"/><path d="M7 14l3 -3 4 4 5 -7"/>
-      </svg>
+  <div style="max-width:920px;margin:24px auto;">
+    <!-- Hero "Bientôt disponible" -->
+    <div style="text-align:center;padding:64px 32px 56px;background:linear-gradient(135deg,var(--card),var(--card2));border:1px solid var(--border2);border-radius:24px;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-180px;left:50%;transform:translateX(-50%);width:520px;height:520px;background:radial-gradient(circle,rgba(45,212,191,0.18) 0%,rgba(201,168,76,0.05) 40%,transparent 65%);pointer-events:none;"></div>
+      <div style="position:relative;z-index:2;">
+        <div style="width:92px;height:92px;margin:0 auto 28px;border-radius:24px;background:linear-gradient(135deg,rgba(45,212,191,0.25),rgba(45,212,191,0.05));border:1px solid rgba(45,212,191,0.35);display:flex;align-items:center;justify-content:center;box-shadow:0 16px 40px rgba(45,212,191,0.15);">
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="var(--teal)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 3v18h18"/><path d="M7 14l3 -3 4 4 5 -7"/>
+          </svg>
+        </div>
+        <h1 style="font-family:'Outfit',sans-serif;font-size:clamp(28px,4.5vw,40px);font-weight:800;letter-spacing:-0.02em;margin-bottom:14px;">Analyse comparative des villes</h1>
+        <div style="display:inline-flex;align-items:center;gap:10px;padding:7px 18px;background:rgba(45,212,191,0.15);border:1px solid rgba(45,212,191,0.32);border-radius:30px;font-size:13px;color:var(--teal);font-weight:700;margin-bottom:22px;text-transform:uppercase;letter-spacing:0.08em;">
+          <span style="width:8px;height:8px;border-radius:50%;background:var(--teal);box-shadow:0 0 12px var(--teal);"></span>
+          Bientôt disponible
+        </div>
+        <p style="color:var(--text2);font-size:16px;line-height:1.65;max-width:560px;margin:0 auto 32px;">
+          Comparez prix au m², loyers réels, tension locative et score d'attractivité de centaines de villes françaises. Carte interactive, tableaux comparatifs et graphiques pour repérer les meilleures opportunités d'investissement.
+        </p>
+        <a href="/#newsletter" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:10px;padding:14px 28px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0a0d14;border-radius:12px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;text-decoration:none;box-shadow:0 8px 28px rgba(201,168,76,0.22);">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22 6 12 13 2 6"/></svg>
+          M'informer quand c'est en ligne
+        </a>
+      </div>
     </div>
-    <h2 style="font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;letter-spacing:-0.02em;margin-bottom:10px;">Analyse des villes</h2>
-    <div style="display:inline-flex;align-items:center;gap:8px;padding:5px 14px;background:rgba(45,212,191,0.12);border:1px solid rgba(45,212,191,0.25);border-radius:30px;font-size:13px;color:var(--teal);font-weight:600;margin-bottom:18px;">
-      <span style="width:7px;height:7px;border-radius:50%;background:var(--teal);"></span>
-      Bientôt disponible
+
+    <!-- Apercu : 3 villes en exemple -->
+    <div style="margin-top:48px;">
+      <div style="text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.12em;font-weight:700;margin-bottom:22px;">Aperçu de ce qui arrive</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;">
+        ${exemples.map(card).join('')}
+      </div>
     </div>
-    <p style="color:var(--text2);font-size:15px;line-height:1.6;max-width:480px;margin:0 auto 24px;">
-      Le module de comparaison des villes (prix, loyers, tension locative, attractivité, carte interactive) arrive très bientôt.
-      En attendant, le simulateur reste pleinement fonctionnel.
-    </p>
-    <a href="#simulateur" class="btn btn-primary" style="display:inline-flex;align-items:center;gap:8px;padding:12px 22px;background:linear-gradient(135deg,var(--gold),var(--gold2));color:#0a0d14;border-radius:10px;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;text-decoration:none;">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"/></svg>
-      Aller au simulateur
-    </a>
   </div>
 </div>`;
 }
