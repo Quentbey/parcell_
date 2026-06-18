@@ -192,7 +192,15 @@
       // Wrap switchTab pour synchroniser l'en-tête + le nav à chaque changement d'onglet
       var _orig=window.switchTab;
       if(typeof _orig==='function'){
-        window.switchTab=function(tab,el){ _orig(tab,el); updateActiveNav(tab); };
+        window.switchTab=function(tab,el){
+          _orig(tab,el);
+          updateActiveNav(tab);
+          // Synchronise l'URL avec l'onglet courant (sans déclencher hashchange)
+          var newHash = '#' + tab;
+          if (['simulateur','analyse','compte'].indexOf(tab) >= 0 && location.hash !== newHash) {
+            history.replaceState(null, '', location.pathname + newHash);
+          }
+        };
       }
       applyTab(tabFromHash());
     },150);
