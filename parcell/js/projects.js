@@ -391,14 +391,61 @@ function loadProject(id) {
       }, 80);
     }
 
-    // Restore params avancés si mode Pro
-    if (p.params) {
-      if (p.params.duree) { document.getElementById('simDuree').value = p.params.duree; document.getElementById('dureeVal').textContent = p.params.duree + ' ans'; }
-      if (p.params.taux)  { document.getElementById('simTaux').value = p.params.taux;   document.getElementById('tauxVal').textContent = parseFloat(p.params.taux).toFixed(1) + '%'; }
-      if (p.params.vacance) { document.getElementById('simVacance').value = p.params.vacance; document.getElementById('vacanceVal').textContent = p.params.vacance + ' mois/an'; }
-      if (p.params.apport) { document.getElementById('simApport').value = p.params.apport; document.getElementById('simApportS').value = p.params.apport; }
+    // Restore mode Simple/Pro (avant les autres champs pour que les blocs corrects soient visibles)
+    if (p.params?.mode && typeof setMode === 'function') {
+      setMode(p.params.mode);
     }
-    autoNotaire();
+
+    // Restore params avancés
+    if (p.params) {
+      if (p.params.duree)  { document.getElementById('simDuree').value = p.params.duree; document.getElementById('dureeVal').textContent = p.params.duree + ' ans'; }
+      if (p.params.taux)   { document.getElementById('simTaux').value = p.params.taux;   document.getElementById('tauxVal').textContent = parseFloat(p.params.taux).toFixed(1) + '%'; }
+      if (p.params.vacance){ document.getElementById('simVacance').value = p.params.vacance; document.getElementById('vacanceVal').textContent = p.params.vacance + ' mois/an'; }
+      if (p.params.apport) { document.getElementById('simApport').value = p.params.apport; document.getElementById('simApportS').value = p.params.apport; }
+      if (p.params.notaire){ document.getElementById('simNotaire').value = p.params.notaire; }
+      if (p.params.travaux){ document.getElementById('simTravaux').value = p.params.travaux; }
+      if (p.params.assur)  { document.getElementById('simAssur').value = p.params.assur; document.getElementById('assurVal').textContent = parseFloat(p.params.assur).toFixed(2) + '%'; }
+      if (p.params.copro != null){ document.getElementById('simCopro').value = p.params.copro; }
+      if (p.params.meublePct){ document.getElementById('meublePct').value = p.params.meublePct; }
+
+      // Colocation
+      const cn = parseInt(p.params.coloc) || 0;
+      if (typeof setColoc === 'function') {
+        if (cn >= 2) {
+          setColoc(true);
+          const sel = document.getElementById('simColocN');
+          if (sel) sel.value = String(Math.min(cn, 5));
+          if (typeof setColocN === 'function') setColocN(Math.min(cn, 5));
+        } else {
+          setColoc(false);
+        }
+      }
+
+      // Equipements coches (Pro)
+      if (Array.isArray(p.params.opts) && typeof activeOpts !== 'undefined') {
+        activeOpts.clear();
+        p.params.opts.forEach(name => {
+          activeOpts.add(name);
+          const cb = document.getElementById('cb-' + name);
+          const item = document.getElementById('opt-' + name);
+          if (cb) cb.checked = true;
+          if (item) item.classList.add('checked');
+        });
+      }
+
+      // Toggles de cases a cocher des options Pro
+      if (p.params.options && typeof setSimOption === 'function') {
+        ['pret','duree','taux','assurance','vacance'].forEach(k => {
+          const v = p.params.options[k] !== false;
+          const cb = document.getElementById('opt-' + k);
+          if (cb) cb.checked = v;
+          setSimOption(k, v);
+        });
+      }
+    }
+
+    // Si on n'a pas restaure de notaire personnalise, on calcule
+    if (!p.params?.notaire) autoNotaire();
     calcSim();
     showToast(`"${p.name}" chargé ✓`);
   }, 100);
@@ -439,10 +486,23 @@ async function saveProject() {
     mensualite: parseFloat(document.getElementById('mensualite')?.textContent) || 0,
     cashflow: parseFloat(document.getElementById('cashflowVal')?.textContent) || 0,
     params: {
+      mode:    (typeof simMode !== 'undefined' ? simMode : 'simple'),
       duree:   document.getElementById('simDuree')?.value,
       taux:    document.getElementById('simTaux')?.value,
       vacance: document.getElementById('simVacance')?.value,
       apport:  document.getElementById('simApport')?.value || document.getElementById('simApportS')?.value,
+      notaire: document.getElementById('simNotaire')?.value,
+      travaux: document.getElementById('simTravaux')?.value,
+      assur:   document.getElementById('simAssur')?.value,
+      copro:   document.getElementById('simCopro')?.value,
+      meublePct: document.getElementById('meublePct')?.value,
+      coloc:   (typeof simColoc !== 'undefined' && simColoc.on) ? simColoc.n : 0,
+      options: (typeof simOptions !== 'undefined') ? {
+        pret: !!simOptions.pret, duree: !!simOptions.duree, taux: !!simOptions.taux,
+        assurance: !!simOptions.assurance, vacance: !!simOptions.vacance
+      } : null,
+      // Liste des equipements coches (Pro)
+      opts: (typeof activeOpts !== 'undefined' && activeOpts && activeOpts.size) ? Array.from(activeOpts) : [],
     }
   });
 
