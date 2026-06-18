@@ -162,14 +162,20 @@
           <li>Carte interactive et tableaux comparatifs</li>
           <li>Évolution démographique sur 50 ans</li>
         </ul>
-        <p style="margin-top:20px"><a href="/app.html#analyse" class="btn btn-ghost">Explorer l'analyse des villes</a></p>
+        <p style="margin-top:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+          <a href="/app.html#analyse" class="btn btn-ghost">Explorer l'analyse des villes</a>
+          <span style="display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(201,168,76,0.10);border:1px solid rgba(201,168,76,0.3);border-radius:30px;font-size:11px;color:var(--gold);font-weight:600;text-transform:uppercase;letter-spacing:0.06em;">
+            <span style="width:5px;height:5px;border-radius:50%;background:var(--gold);"></span>
+            À venir
+          </span>
+        </p>
       </div>
-      <div class="split-visual reveal-r" aria-hidden="true">
-        <div class="bar-row"><span class="city">Saint-Étienne</span><span class="bar-track"><span class="bar-fill" data-w="88"></span></span><span class="pct">8,1 %</span></div>
-        <div class="bar-row"><span class="city">Roanne</span><span class="bar-track"><span class="bar-fill" data-w="80"></span></span><span class="pct">7,4 %</span></div>
-        <div class="bar-row"><span class="city">Montbrison</span><span class="bar-track"><span class="bar-fill" data-w="66"></span></span><span class="pct">6,1 %</span></div>
-        <div class="bar-row"><span class="city">Lyon 8e</span><span class="bar-track"><span class="bar-fill" data-w="48"></span></span><span class="pct">4,4 %</span></div>
-        <div class="bar-row"><span class="city">Lyon 6e</span><span class="bar-track"><span class="bar-fill" data-w="40"></span></span><span class="pct">3,7 %</span></div>
+      <div class="split-visual reveal-r" aria-hidden="true" id="cityBars">
+        <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;font-weight:600;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+          <span>Rendement brut moyen</span>
+          <span style="font-size:10px;opacity:0.6;letter-spacing:0.04em;">loyers ÷ prix</span>
+        </div>
+        <div id="cityBarsList"></div>
       </div>
     </div>
   </div>
@@ -206,22 +212,38 @@
   </div>
 </section>
 
-<!-- ══ NEWSLETTER ══ -->
-<section class="section section-alt">
-  <div class="wrap news reveal">
-    <h2>Restez informé des bonnes opportunités</h2>
-    <p style="color:var(--text2);margin-top:10px;">Recevez nos analyses de villes et conseils d'investissement locatif. Pas de spam, désinscription en un clic.</p>
-    <!-- Formulaire newsletter compatible Brevo (Sendinblue).
-         Pour activer la collecte : creer un formulaire dans Brevo,
-         recuperer son URL "action" (format https://[ID].sibforms.com/serve/...),
-         et la coller dans l'attribut data-action ci-dessous. -->
-    <form class="news-form" id="newsForm" data-action="[À COMPLÉTER : URL Brevo (ou Mailchimp)]" method="POST" novalidate>
-      <p style="display:none;"><label>Ne pas remplir : <input name="bot-field"></label></p>
-      <input type="email" name="EMAIL" required placeholder="vous@email.fr" aria-label="Votre adresse email">
-      <button class="btn btn-primary" type="submit">S'inscrire</button>
-    </form>
-    <div class="news-ok" id="newsOk" style="display:none;">Merci, votre inscription est bien prise en compte.</div>
-    <p class="news-note">En vous inscrivant, vous acceptez de recevoir nos emails. Vos données ne sont jamais revendues.</p>
+<!-- ══ NEWSLETTER + CONTACT ══ -->
+<section class="section section-alt" id="newsletter">
+  <div class="wrap" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:48px;max-width:1100px;">
+    <!-- Newsletter -->
+    <div class="news reveal" style="text-align:left;">
+      <div style="font-size:11px;color:var(--teal);text-transform:uppercase;letter-spacing:0.18em;font-weight:600;margin-bottom:10px;">Newsletter</div>
+      <h2 style="font-size:24px;text-align:left;">Restez informé des bonnes opportunités</h2>
+      <p style="color:var(--text2);margin-top:10px;text-align:left;">Recevez nos analyses de villes et conseils d'investissement locatif. Pas de spam, désinscription en un clic.</p>
+      <!-- Brevo / Mailchimp : remplacer data-action par l'URL du formulaire. -->
+      <form class="news-form" id="newsForm" data-action="[À COMPLÉTER : URL Brevo (ou Mailchimp)]" method="POST" novalidate>
+        <p style="display:none;"><label>Ne pas remplir : <input name="bot-field"></label></p>
+        <input type="email" name="EMAIL" required placeholder="vous@email.fr" aria-label="Votre adresse email">
+        <button class="btn btn-primary" type="submit">S'inscrire</button>
+      </form>
+      <div class="news-ok" id="newsOk" style="display:none;">Merci, votre inscription est bien prise en compte.</div>
+      <p class="news-note" style="text-align:left;">En vous inscrivant, vous acceptez de recevoir nos emails. Vos données ne sont jamais revendues.</p>
+    </div>
+
+    <!-- Contact -->
+    <div class="news reveal d1" id="contact" style="text-align:left;">
+      <div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:0.18em;font-weight:600;margin-bottom:10px;">Contact</div>
+      <h2 style="font-size:24px;text-align:left;">Un retour, une suggestion ?</h2>
+      <p style="color:var(--text2);margin-top:10px;text-align:left;">Écris-nous ce qui te plaît, ce qui manque, ou ce que tu aimerais voir évoluer. On lit tout.</p>
+      <form class="news-form" id="contactForm" data-action="[À COMPLÉTER : URL Brevo/Formspree]" method="POST" novalidate style="display:flex;flex-direction:column;gap:10px;">
+        <input type="text" name="NAME" placeholder="Votre prénom (optionnel)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;">
+        <input type="email" name="EMAIL" required placeholder="Votre email" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;">
+        <textarea name="MESSAGE" required placeholder="Votre message..." rows="4" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;resize:vertical;min-height:96px;"></textarea>
+        <button class="btn btn-primary" type="submit" style="align-self:flex-start;">Envoyer le message</button>
+      </form>
+      <div class="news-ok" id="contactOk" style="display:none;">Merci, message reçu. On revient vers toi rapidement.</div>
+      <p class="news-note" style="text-align:left;">Tes données restent confidentielles. Nous ne les utilisons que pour te répondre.</p>
+    </div>
   </div>
 </section>
 
@@ -287,6 +309,37 @@
     document.getElementById('mAn').textContent=eur(an);
   }
   if(mp&&ml){mp.addEventListener('input',miniCalc);ml.addEventListener('input',miniCalc);miniCalc();}
+
+  // ── Villes exemples : rotation toutes les 5s ──
+  var CITY_POOL=[
+    {n:'Saint-Étienne',y:8.1},{n:'Lyon 6e',y:3.7},{n:'Lyon 8e',y:4.4},
+    {n:'Bordeaux',y:4.5},{n:'Lille',y:5.8},{n:'Marseille',y:5.5},
+    {n:'Toulouse',y:5.0},{n:'Nantes',y:4.8},{n:'Strasbourg',y:5.2},
+    {n:'Montpellier',y:5.0},{n:'Rennes',y:4.6},{n:'Nice',y:4.2}
+  ];
+  var cityIdx=0;
+  function renderCityBars(){
+    var list=document.getElementById('cityBarsList'); if(!list)return;
+    var shown=[]; for(var i=0;i<5;i++) shown.push(CITY_POOL[(cityIdx+i)%CITY_POOL.length]);
+    shown.sort(function(a,b){return b.y-a.y;});
+    var max=shown[0].y;
+    list.innerHTML=shown.map(function(c){
+      return '<div class="bar-row" style="transition:opacity .4s ease;"><span class="city">'+c.n+'</span><span class="bar-track"><span class="bar-fill" style="width:'+(c.y/max*100).toFixed(0)+'%"></span></span><span class="pct">'+c.y.toFixed(1).replace('.',',')+' %</span></div>';
+    }).join('');
+  }
+  renderCityBars();
+  setInterval(function(){ cityIdx=(cityIdx+1)%CITY_POOL.length; renderCityBars(); }, 5000);
+
+  // ── Formulaire contact ──
+  var cf=document.getElementById('contactForm');
+  if(cf)cf.addEventListener('submit',function(e){
+    e.preventDefault();
+    var action=(cf.getAttribute('data-action')||'').trim();
+    var configured=action && action.indexOf('À COMPLÉTER')===-1 && /^https?:\/\//.test(action);
+    if(configured){ try{ fetch(action,{method:'POST',body:new FormData(cf),mode:'no-cors'}).catch(function(){}); }catch(_){} }
+    cf.style.display='none';
+    var ok=document.getElementById('contactOk'); if(ok) ok.style.display='block';
+  });
 
   // Capture email : envoi vers Brevo (ou Mailchimp) si data-action est configuré.
   // Sinon, on confirme localement (la collecte ne se fera qu'apres configuration).
