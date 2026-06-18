@@ -131,6 +131,26 @@ const STATUS_CONFIG = {
   abandonne:{ label: 'Abandonné',   color: 'var(--red)',   icon: '❌' },
 };
 
+// Echappement HTML (anti-XSS) puis detection des URLs pour les rendre cliquables.
+function escapeHtml(s){
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+function linkify(text){
+  if (!text) return '';
+  return escapeHtml(text).replace(
+    /(https?:\/\/[^\s<>"']+|www\.[a-z0-9.\-]+\.[a-z]{2,}[^\s<>"']*)/gi,
+    function(m){
+      const href = m.toLowerCase().startsWith('www.') ? 'http://' + m : m;
+      return '<a href="' + href + '" target="_blank" rel="noopener noreferrer" style="color:var(--teal);text-decoration:underline;word-break:break-all;">' + m + '</a>';
+    }
+  );
+}
+
 // ─── Comparaison de projets ───
 let compareMode = false;
 const compareSelected = new Set();
@@ -156,7 +176,7 @@ const COMPARE_CRITERIA = [
   { key:'apport',     label:'Apport',        defaut:false, get:p => p.params?.apport ? Math.round(parseFloat(p.params.apport)).toLocaleString('fr-FR')+' €' : '—' },
   { key:'coloc',      label:'Colocation',    defaut:false, get:p => (parseInt(p.params?.coloc)||0) >= 2 ? p.params.coloc+' colocs' : 'Non' },
   { key:'created',    label:'Créé le',       defaut:false, get:p => new Date(p.created_at).toLocaleDateString('fr-FR') },
-  { key:'note',       label:'Note',          defaut:false, get:p => p.note||'—' },
+  { key:'note',       label:'Note',          defaut:false, get:p => p.note ? linkify(p.note) : '—', raw:true },
 ];
 
 function loadCompareCriteria(){
@@ -322,7 +342,7 @@ async function renderProjets() {
           <button class="projet-action-btn danger" onclick="deleteProjectFromDB('${p.id}')">✕</button>
         </div>
       </div>
-      ${p.note ? `<div style="margin-top:10px;padding:8px 10px;background:var(--bg3);border-radius:6px;font-size:11px;color:var(--text3);font-style:italic;">"${p.note}"</div>` : ''}
+      ${p.note ? `<div onclick="event.stopPropagation()" style="margin-top:10px;padding:8px 10px;background:var(--bg3);border-radius:6px;font-size:11px;color:var(--text3);font-style:italic;white-space:pre-wrap;word-break:break-word;">"${linkify(p.note)}"</div>` : ''}
     </div>`;
   }).join('') + `
     <div class="new-projet-card" onclick="switchTab('simulateur',document.querySelector('.main-tab:nth-child(2)'))">
