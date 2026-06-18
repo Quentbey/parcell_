@@ -53,7 +53,12 @@ async function saveProjectToDB(projectData) {
   };
 
   const { data, error } = await supabaseClient.from('projects').insert(payload).select().single();
-  if (error) { console.error('saveProject:', error); showToast('Erreur lors de la sauvegarde', 'err'); return null; }
+  if (error) {
+    console.error('saveProject error:', error, 'payload:', payload);
+    const msg = error.message || error.code || error.details || 'erreur inconnue';
+    showToast('Erreur sauvegarde : ' + msg, 'err');
+    return null;
+  }
 
   savedProjects.unshift(data);
   updateProjectCount();
