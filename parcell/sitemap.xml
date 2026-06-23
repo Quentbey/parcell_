@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://parcell.pages.dev/</loc>
+    <loc>https://yrow.pages.dev/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://parcell.pages.dev/app.html</loc>
+    <loc>https://yrow.pages.dev/app.html</loc>
     <changefreq>weekly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://parcell.pages.dev/mentionslegales.html</loc>
+    <loc>https://yrow.pages.dev/mentionslegales.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://parcell.pages.dev/confidentialite.html</loc>
+    <loc>https://yrow.pages.dev/confidentialite.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://parcell.pages.dev/cgu.html</loc>
+    <loc>https://yrow.pages.dev/cgu.html</loc>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>

@@ -1,5 +1,5 @@
 -- ============================================================
--- PARCELL — Schéma Supabase
+-- YROW — Schéma Supabase
 -- À coller dans l'éditeur SQL de ton projet Supabase
 -- Dashboard → SQL Editor → New Query → Coller → Run
 -- ============================================================

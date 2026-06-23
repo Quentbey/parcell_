@@ -1,7 +1,7 @@
-# 🚀 Guide de mise en ligne Parcell — Étape par Étape
+# 🚀 Guide de mise en ligne Yrow — Étape par Étape
 
 ## Ce que tu vas avoir à la fin
-- Une vraie app en ligne avec une URL du type `https://parcell.netlify.app`
+- Une vraie app en ligne avec une URL du type `https://yrow.pages.dev`
 - Authentification email + Google qui fonctionne
 - Projets sauvegardés en base de données réelle
 - Déploiement automatique à chaque modification du code
@@ -24,7 +24,7 @@
 ```bash
 git init
 git add .
-git commit -m "Initial commit — Parcell v1"
+git commit -m "Initial commit — Yrow v1"
 git branch -M main
 git remote add origin https://github.com/TON_USERNAME/parcell.git
 git push -u origin main
@@ -71,7 +71,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGci...';                // ← ta vraie clé
 
 ### Créer les credentials Google
 1. Va sur **https://console.cloud.google.com**
-2. Crée un nouveau projet : "Parcell"
+2. Crée un nouveau projet : "Yrow"
 3. Menu → **APIs & Services** → **Credentials**
 4. "Create Credentials" → "OAuth 2.0 Client IDs"
 5. Application type : **Web application**
@@ -120,7 +120,7 @@ const SUPABASE_ANON_KEY = 'eyJhbGci...';                // ← ta vraie clé
 ## ÉTAPE 5 — Tester (5 min)
 
 1. Ouvre `https://amazing-name-123.netlify.app`
-2. Tu devrais voir l'écran de connexion Parcell
+2. Tu devrais voir l'écran de connexion Yrow
 3. Teste l'inscription avec un email → vérifie que l'email de confirmation arrive
 4. Teste la connexion Google
 5. Crée une simulation → sauvegarde → ferme l'onglet → reconnecte → vérifie que le projet est là ✅

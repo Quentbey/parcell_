@@ -180,10 +180,10 @@ const COMPARE_CRITERIA = [
 ];
 
 function loadCompareCriteria(){
-  try { const s=localStorage.getItem('parcell:compareCriteria'); if(s) compareCriteria=JSON.parse(s); } catch(_){}
+  try { const s=localStorage.getItem('yrow:compareCriteria'); if(s) compareCriteria=JSON.parse(s); } catch(_){}
   if(!compareCriteria.length) compareCriteria = COMPARE_CRITERIA.filter(c=>c.defaut).map(c=>c.key);
 }
-function saveCompareCriteria(){ try { localStorage.setItem('parcell:compareCriteria', JSON.stringify(compareCriteria)); } catch(_){} }
+function saveCompareCriteria(){ try { localStorage.setItem('yrow:compareCriteria', JSON.stringify(compareCriteria)); } catch(_){} }
 
 function toggleCompareMode(){
   compareMode = !compareMode;

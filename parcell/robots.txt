@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /app.html
 
-Sitemap: https://parcell.pages.dev/sitemap.xml
+Sitemap: https://yrow.pages.dev/sitemap.xml

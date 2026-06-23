@@ -21,7 +21,7 @@ async function initAuth() {
     }
   } catch(e) {
     // Session non disponible, on reste en mode invité
-    console.warn('Parcell: session check failed', e);
+    console.warn('Yrow: session check failed', e);
   }
 
   supabaseClient.auth.onAuthStateChange(async (event, session) => {
@@ -229,7 +229,7 @@ function renderAuthHTML(mode) {
     <div style="width:48px;height:48px;background:linear-gradient(135deg,#c9a84c,#e8c97a);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 4px 20px rgba(201,168,76,0.3);">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0a0d14" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
     </div>
-    <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:24px;color:#e4e8f2;letter-spacing:-0.02em;">Parc<span style="color:#c9a84c;">ell</span></div>
+    <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:24px;color:#e4e8f2;letter-spacing:-0.02em;">Yr<span style="color:#c9a84c;">ow</span></div>
     <div style="font-size:13px;color:#7e8a9e;margin-top:4px;">
       ${isLogin ? 'Bon retour 👋' : isSignup ? 'Créez votre compte gratuit' : isNewPwd ? 'Choisissez un nouveau mot de passe' : 'Réinitialiser le mot de passe'}
     </div>
