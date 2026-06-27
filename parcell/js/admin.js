@@ -8,6 +8,18 @@
 let adminUsers = [];
 let adminProjects = [];
 
+// Escape HTML pour empecher XSS via donnees utilisateur injectees dans innerHTML.
+// On reutilise escapeHtml() de projects.js si disponible, fallback sinon.
+const _esc = (s) => {
+  if (typeof escapeHtml === 'function') return escapeHtml(s);
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 // Revele le menu "Administration" si le profil est admin.
 function refreshAdminVisibility() {
   const nav = document.getElementById('cnav-admin');
@@ -26,8 +38,8 @@ async function loadAdminData() {
     supabaseClient.from('profiles').select('*').order('created_at', { ascending: false }),
     supabaseClient.from('projects').select('*').order('created_at', { ascending: false }),
   ]);
-  if (e1) { console.error('admin profiles:', e1); if (panel) panel.innerHTML = '<div style="color:var(--red);padding:24px;">Erreur de chargement des utilisateurs : '+e1.message+'</div>'; return; }
-  if (e2) { console.error('admin projects:', e2); if (panel) panel.innerHTML = '<div style="color:var(--red);padding:24px;">Erreur de chargement des projets : '+e2.message+'</div>'; return; }
+  if (e1) { console.error('admin profiles:', e1); if (panel) panel.innerHTML = '<div style="color:var(--red);padding:24px;">Erreur de chargement des utilisateurs : '+_esc(e1.message)+'</div>'; return; }
+  if (e2) { console.error('admin projects:', e2); if (panel) panel.innerHTML = '<div style="color:var(--red);padding:24px;">Erreur de chargement des projets : '+_esc(e2.message)+'</div>'; return; }
 
   adminUsers = users || [];
   adminProjects = projects || [];
@@ -71,7 +83,7 @@ function renderAdminPanel() {
         <div style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;">
           ${topVilles.map(([ville, count]) => `
             <div style="display:flex;align-items:center;gap:10px;margin-bottom:9px;">
-              <span style="width:140px;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${ville}</span>
+              <span style="width:140px;font-size:13px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${_esc(ville)}</span>
               <div style="flex:1;background:var(--bg3);border-radius:4px;height:8px;overflow:hidden;">
                 <div style="width:${(count / maxCount * 100).toFixed(0)}%;background:linear-gradient(90deg,var(--teal),var(--gold));height:100%;border-radius:4px;"></div>
               </div>
@@ -101,8 +113,8 @@ function renderAdminPanel() {
 
 function statCard(value, label, color) {
   return `<div style="background:var(--card2);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;">
-    <div style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;color:${color};letter-spacing:-0.02em;">${value}</div>
-    <div style="font-size:12px;color:var(--text2);margin-top:2px;">${label}</div>
+    <div style="font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;color:${color};letter-spacing:-0.02em;">${_esc(value)}</div>
+    <div style="font-size:12px;color:var(--text2);margin-top:2px;">${_esc(label)}</div>
   </div>`;
 }
 
@@ -111,15 +123,17 @@ function userRow(u, nbProjects) {
     ? '<span style="display:inline-block;padding:1px 7px;background:var(--gold-glow);color:var(--gold);border:1px solid rgba(201,168,76,0.3);border-radius:8px;font-size:10px;font-weight:700;margin-left:6px;vertical-align:middle;">ADMIN</span>'
     : '';
   const isSelf = currentProfile && u.id === currentProfile.id;
+  // Boutons : on utilise data-attributes (echappes) + delegated listener.
+  // Jamais d'injection user-data dans une string JS inline (vecteur XSS classique).
   const actionBtns = `
-    <button onclick="adminViewUserProjects('${u.id}', '${(u.email || '').replace(/'/g, "\\'")}')" style="padding:5px 10px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-right:4px;">Voir projets</button>
-    ${isSelf ? '' : `<button onclick="adminTogglePromote('${u.id}', ${!u.is_admin})" style="padding:5px 10px;background:${u.is_admin ? 'rgba(248,113,113,0.10)' : 'rgba(201,168,76,0.10)'};border:1px solid ${u.is_admin ? 'rgba(248,113,113,0.30)' : 'rgba(201,168,76,0.30)'};border-radius:6px;color:${u.is_admin ? 'var(--red)' : 'var(--gold)'};font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">${u.is_admin ? 'Retrograder' : 'Promouvoir'}</button>`}
+    <button type="button" data-admin-action="view-projects" data-userid="${_esc(u.id)}" data-email="${_esc(u.email || '')}" style="padding:5px 10px;background:transparent;border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;margin-right:4px;">Voir projets</button>
+    ${isSelf ? '' : `<button type="button" data-admin-action="toggle-admin" data-userid="${_esc(u.id)}" data-make-admin="${!u.is_admin}" style="padding:5px 10px;background:${u.is_admin ? 'rgba(248,113,113,0.10)' : 'rgba(201,168,76,0.10)'};border:1px solid ${u.is_admin ? 'rgba(248,113,113,0.30)' : 'rgba(201,168,76,0.30)'};border-radius:6px;color:${u.is_admin ? 'var(--red)' : 'var(--gold)'};font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;">${u.is_admin ? 'Retrograder' : 'Promouvoir'}</button>`}
   `;
   return `<tr style="border-bottom:1px solid var(--border);">
-    <td style="padding:11px 14px;">${u.email || '—'}${adminBadge}</td>
-    <td style="padding:11px 14px;color:var(--text2);">${u.full_name || '—'}</td>
+    <td style="padding:11px 14px;">${_esc(u.email || '—')}${adminBadge}</td>
+    <td style="padding:11px 14px;color:var(--text2);">${_esc(u.full_name || '—')}</td>
     <td style="padding:11px 14px;color:var(--teal);font-weight:600;">${nbProjects}</td>
-    <td style="padding:11px 14px;color:var(--text2);">${u.plan || 'free'}</td>
+    <td style="padding:11px 14px;color:var(--text2);">${_esc(u.plan || 'free')}</td>
     <td style="padding:11px 14px;color:var(--text2);">${new Date(u.created_at).toLocaleDateString('fr-FR')}</td>
     <td style="padding:11px 14px;white-space:nowrap;">${actionBtns}</td>
   </tr>`;
@@ -142,8 +156,8 @@ function adminViewUserProjects(userId, email) {
   if (!panel) return;
   panel.innerHTML = `
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;gap:12px;flex-wrap:wrap;">
-      <button onclick="renderAdminPanel()" style="padding:8px 14px;background:transparent;border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;">← Retour au panneau</button>
-      <div style="font-size:13px;color:var(--text2);"><strong style="color:var(--text);">${projects.length}</strong> projet${projects.length > 1 ? 's' : ''} de <strong style="color:var(--gold);">${email}</strong></div>
+      <button type="button" data-admin-action="back-to-panel" style="padding:8px 14px;background:transparent;border:1px solid var(--border2);border-radius:8px;color:var(--text2);font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;">← Retour au panneau</button>
+      <div style="font-size:13px;color:var(--text2);"><strong style="color:var(--text);">${projects.length}</strong> projet${projects.length > 1 ? 's' : ''} de <strong style="color:var(--gold);">${_esc(email)}</strong></div>
     </div>
     ${projects.length === 0 ? '<div style="text-align:center;padding:48px;color:var(--text3);font-size:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">Aucun projet sauvegarde pour cet utilisateur.</div>' : `
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">
@@ -151,10 +165,10 @@ function adminViewUserProjects(userId, email) {
           const cf = parseFloat(p.cashflow) || 0;
           return `
             <div style="background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius);padding:16px;">
-              <div style="font-family:'Outfit',sans-serif;font-weight:700;color:var(--text);margin-bottom:3px;">${p.name || '—'}</div>
-              <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">${p.ville || ''}${p.quartier ? ' · ' + p.quartier : ''} · ${p.surface || 0}m² · ${p.pieces || 0}P</div>
+              <div style="font-family:'Outfit',sans-serif;font-weight:700;color:var(--text);margin-bottom:3px;">${_esc(p.name || '—')}</div>
+              <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">${_esc(p.ville || '')}${p.quartier ? ' · ' + _esc(p.quartier) : ''} · ${parseFloat(p.surface) || 0}m² · ${parseInt(p.pieces) || 0}P</div>
               <div style="display:flex;gap:16px;font-size:12px;">
-                <div><div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;">Renta nette</div><div style="color:var(--gold);font-weight:700;margin-top:2px;font-family:'Outfit',sans-serif;">${p.rent_nette || '—'}</div></div>
+                <div><div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;">Renta nette</div><div style="color:var(--gold);font-weight:700;margin-top:2px;font-family:'Outfit',sans-serif;">${_esc(p.rent_nette || '—')}</div></div>
                 <div><div style="color:var(--text3);font-size:10px;text-transform:uppercase;letter-spacing:0.05em;">Cashflow</div><div style="color:${cf >= 0 ? 'var(--green)' : 'var(--red)'};font-weight:700;margin-top:2px;font-family:'Outfit',sans-serif;">${cf >= 0 ? '+' : ''}${Math.round(cf)} €</div></div>
               </div>
               <div style="font-size:10px;color:var(--text3);margin-top:10px;">${new Date(p.created_at).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
@@ -164,3 +178,22 @@ function adminViewUserProjects(userId, email) {
     `}
   `;
 }
+
+// Delegated event listener : centralise tous les clics admin via data-attributes,
+// elimine les inline onclick (vecteur XSS si user-data inject dans la string JS).
+document.addEventListener('click', function(e) {
+  const btn = e.target.closest('[data-admin-action]');
+  if (!btn) return;
+  // Garde-fou : seuls les admins peuvent declencher ces actions.
+  // La verite est cote serveur (RLS Supabase), c'est juste une UX.
+  if (!currentProfile?.is_admin) return;
+
+  const action = btn.dataset.adminAction;
+  if (action === 'view-projects') {
+    adminViewUserProjects(btn.dataset.userid, btn.dataset.email || '');
+  } else if (action === 'toggle-admin') {
+    adminTogglePromote(btn.dataset.userid, btn.dataset.makeAdmin === 'true');
+  } else if (action === 'back-to-panel') {
+    renderAdminPanel();
+  }
+});
