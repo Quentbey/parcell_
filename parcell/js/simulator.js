@@ -16,6 +16,9 @@ function setMode(m){
   document.getElementById('modeDesc').textContent=m==='simple'
     ?'Estimez rapidement la rentabilité d\'un bien en quelques clics.'
     :'Affinez chaque paramètre pour une simulation complète et précise.';
+  // La case "Inclure les charges (CC)" n'a de sens qu'en mode Pro (il y a des charges).
+  const ccWrap = document.getElementById('ccToggleWrap');
+  if (ccWrap) ccWrap.style.display = (m==='pro') ? 'inline-flex' : 'none';
   calcSim();
 }
 
@@ -291,11 +294,54 @@ function updateSimLoyer(){
   let optBonus=0;
   if(simMode==='pro'){ activeOpts.forEach(o=>optBonus+=OPT_BONUS[o]||0); }
   const colocBonus = simMode==='pro' ? _colocBonus() : 0;
-  const loyer=Math.round(lyrBase*surf*coef*(1+meublePct)*(1+optBonus)*(1+colocBonus));
+  const loyerHC=Math.round(lyrBase*surf*coef*(1+meublePct)*(1+optBonus)*(1+colocBonus));
 
-  document.getElementById('simLoyer').value=loyer;
+  // Mode "charges comprises" : on ajoute les charges copro à la valeur affichée.
+  // Le calcul de rentabilité (calcSim) retire ce delta pour rester sur le loyer HC.
+  const charges = simMode==='pro' && simChargesInLoyer ? (parseFloat(document.getElementById('simCopro')?.value)||0) : 0;
+  document.getElementById('simLoyer').value = loyerHC + Math.round(charges);
   const tLabel = `Tension ${tensionLabel(tension)} (${tension}/10)`;
-  document.getElementById('lyrInfo').textContent = `${cityName}${qLabel} · ${lyrBase}€/m² · ${tLabel}`;
+  const ccBadge = simChargesInLoyer ? ' · CC' : '';
+  document.getElementById('lyrInfo').textContent = `${cityName}${qLabel} · ${lyrBase}€/m² · ${tLabel}${ccBadge}`;
+  calcSim();
+}
+
+// Bascule le mode "charges comprises" sur l'affichage du loyer.
+// Préserve la valeur saisie manuellement par l'utilisateur en ajoutant/retirant
+// les charges copro au champ #simLoyer, sans tout recalculer depuis la ville.
+function setChargesInLoyer(on){
+  const next = !!on;
+  if (next === simChargesInLoyer) return;
+  const copro = parseFloat(document.getElementById('simCopro')?.value)||0;
+  const cur = parseFloat(document.getElementById('simLoyer')?.value)||0;
+  simChargesInLoyer = next;
+  const adjusted = next ? cur + Math.round(copro) : Math.max(0, cur - Math.round(copro));
+  document.getElementById('simLoyer').value = adjusted;
+  // Synchronise la case à cocher (si l'appel vient d'un loadProject)
+  const cb = document.getElementById('optChargesInLoyer');
+  if (cb && cb.checked !== next) cb.checked = next;
+  // Met à jour le sous-titre (CC badge)
+  const lyrInfo = document.getElementById('lyrInfo');
+  if (lyrInfo) {
+    const txt = lyrInfo.textContent.replace(/\s·\sCC$/, '');
+    lyrInfo.textContent = txt + (next ? ' · CC' : '');
+  }
+  calcSim();
+}
+
+// Quand l'utilisateur change les charges copro : si CC actif, on ajuste le loyer
+// affiché par le delta (new - prev) pour que le HC sous-jacent reste constant.
+function onSimCoproChange(){
+  const el = document.getElementById('simCopro');
+  if (!el) { calcSim(); return; }
+  const newC = parseFloat(el.value)||0;
+  const prevC = parseFloat(el.dataset.prev)||0;
+  if (simChargesInLoyer) {
+    const delta = Math.round(newC) - Math.round(prevC);
+    const ly = document.getElementById('simLoyer');
+    if (ly) ly.value = Math.max(0, (parseFloat(ly.value)||0) + delta);
+  }
+  el.dataset.prev = newC;
   calcSim();
 }
 
@@ -307,8 +353,11 @@ function calcSim(){
   const notaire=isSimple?Math.round(prix*0.075):parseFloat(document.getElementById('simNotaire').value)||0;
   const travaux=isSimple?5000:parseFloat(document.getElementById('simTravaux').value)||0;
   const apport=parseFloat(document.getElementById(isSimple?'simApportS':'simApport').value)||0;
-  const loyer=parseFloat(document.getElementById('simLoyer').value)||0;
   const copro=isSimple?0:parseFloat(document.getElementById('simCopro').value)||0;
+  // Si le loyer affiché est en charges comprises (CC), on retire les charges pour
+  // ne calculer les KPIs que sur le loyer HC (sinon la rentabilité serait gonflée).
+  const loyerDisplayed=parseFloat(document.getElementById('simLoyer').value)||0;
+  const loyer = (!isSimple && simChargesInLoyer) ? Math.max(0, loyerDisplayed - Math.round(copro)) : loyerDisplayed;
 
   // En mode Pro, on respecte les cases à cocher. En Simple, les défauts.
   const pretOn      = isSimple ? true  : O.pret;
@@ -526,7 +575,8 @@ function applyExtracted(data){
   else if(data.meuble===false){setMeuble(false);}
 
   // Équipements — coche automatiquement
-  const equipMap={parking:['parking','garage','box'],balcon:['balcon','terrasse','loggia'],jardin:['jardin','jardin privatif'],cave:['cave','cellier'],digicode:['gardien','digicode','interphone','interphone'],renove:['rénové','refait','neuf','récent','rénovation']};
+  // Parking séparé : "garage" / "box" → garage (+8%), reste "parking" générique → parking_ext (+3%)
+  const equipMap={garage:['garage','box','box ferme','box fermé'],parking_ext:['parking','stationnement','place de parking','parking extérieur'],balcon:['balcon','terrasse','loggia'],jardin:['jardin','jardin privatif'],cave:['cave','cellier'],digicode:['gardien','digicode','interphone'],renove:['rénové','refait','neuf','récent','rénovation']};
   if(data.equipements&&Array.isArray(data.equipements)){
     data.equipements.forEach(eq=>{
       const eqLow=eq.toLowerCase();
@@ -580,7 +630,7 @@ Extrais ces champs si présents (null si absent) :
 - ville (string, nom de la ville)
 - code_postal (string, code postal à 5 chiffres)
 - meuble (boolean, true si meublé mentionné)
-- equipements (array of strings: liste des équipements détectés parmi : parking, garage, balcon, terrasse, jardin, cave, cellier, gardien, digicode, rénové, neuf)
+- equipements (array of strings: liste des équipements détectés parmi : parking, garage, box, balcon, terrasse, jardin, cave, cellier, gardien, digicode, rénové, neuf). Distingue bien "parking / place extérieure" et "garage / box fermé".
 - dpe (string, classe DPE si mentionnée: A/B/C/D/E/F/G)
 - loyer_actuel (number, loyer mensuel si mentionné)
 - etage (number, étage du bien)
@@ -652,7 +702,10 @@ function parseBasic(txt){
   const cpM=txt.match(/\b(690[0-9][0-9]|6[0-9]{4})\b/);
   if(cpM)data.code_postal=cpM[1];
   if(/meubl/i.test(txt))data.meuble=true;
-  const eqKeys=['parking','garage','balcon','terrasse','jardin','cave','cellier','gardien','digicode','rénové','neuf'];
+  // Distingue garage/box (plus valorisé) du parking extérieur
+  if(/garage|box(?!\s*aux\s*lettres)/i.test(txt)) data.equipements.push('garage');
+  else if(/parking|stationnement/i.test(txt)) data.equipements.push('parking');
+  const eqKeys=['balcon','terrasse','jardin','cave','cellier','gardien','digicode','rénové','neuf'];
   eqKeys.forEach(k=>{if(new RegExp(k,'i').test(txt))data.equipements.push(k);});
   const cityM=VILLES.find(c=>new RegExp('\\b'+c.Ville.split('-')[0]+'\\b','i').test(txt));
   if(cityM)data.ville=cityM.Ville;

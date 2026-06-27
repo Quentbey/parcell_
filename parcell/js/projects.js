@@ -442,6 +442,14 @@ function loadProject(id) {
           setSimOption(k, v);
         });
       }
+
+      // Bascule "Charges comprises" (CC) sur l'affichage du loyer
+      if (typeof setChargesInLoyer === 'function') {
+        setChargesInLoyer(!!p.params.chargesInLoyer);
+      }
+      // Initialise le data-prev des charges copro pour le delta CC
+      const copEl = document.getElementById('simCopro');
+      if (copEl) copEl.dataset.prev = copEl.value || '0';
     }
 
     // Si on n'a pas restaure de notaire personnalise, on calcule
@@ -501,8 +509,11 @@ async function saveProject() {
         pret: !!simOptions.pret, duree: !!simOptions.duree, taux: !!simOptions.taux,
         assurance: !!simOptions.assurance, vacance: !!simOptions.vacance
       } : null,
-      // Liste des equipements coches (Pro)
+      // Liste des equipements coches (Pro) — peut contenir 'garage', 'parking_ext',
+      // ou l'ancienne clé 'parking' (rétrocompat des projets sauvegardés avant le split)
       opts: (typeof activeOpts !== 'undefined' && activeOpts && activeOpts.size) ? Array.from(activeOpts) : [],
+      // Loyer affiché en charges comprises (CC) ou hors charges (HC) ?
+      chargesInLoyer: (typeof simChargesInLoyer !== 'undefined') ? !!simChargesInLoyer : false,
     }
   });
 

@@ -190,7 +190,8 @@ function renderSimulateurTab() {
         <div class="pro-section">
           <div class="pro-section-title">Équipements & atouts</div>
           <div class="checkbox-grid">
-            <label class="checkbox-item" id="opt-parking" onclick="toggleOpt('parking',this)"><input type="checkbox" id="cb-parking" style="pointer-events:none;"> 🚗 Parking / Garage</label>
+            <label class="checkbox-item" id="opt-parking_ext" onclick="toggleOpt('parking_ext',this)"><input type="checkbox" id="cb-parking_ext" style="pointer-events:none;"> 🅿️ Place de parking / extérieur</label>
+            <label class="checkbox-item" id="opt-garage" onclick="toggleOpt('garage',this)"><input type="checkbox" id="cb-garage" style="pointer-events:none;"> 🚗 Garage / Box fermé</label>
             <label class="checkbox-item" id="opt-balcon" onclick="toggleOpt('balcon',this)"><input type="checkbox" id="cb-balcon" style="pointer-events:none;"> 🌿 Balcon / Terrasse</label>
             <label class="checkbox-item" id="opt-jardin" onclick="toggleOpt('jardin',this)"><input type="checkbox" id="cb-jardin" style="pointer-events:none;"> 🌳 Jardin privatif</label>
             <label class="checkbox-item" id="opt-cave" onclick="toggleOpt('cave',this)"><input type="checkbox" id="cb-cave" style="pointer-events:none;"> 📦 Cave / Cellier</label>
@@ -216,7 +217,7 @@ function renderSimulateurTab() {
         <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-taux" checked onchange="setSimOption('taux', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Taux d'intérêt : <span id="tauxVal" class="range-val">3.6%</span></span></label><input type="range" id="simTaux" min="1" max="7" step="0.1" value="3.6" oninput="document.getElementById('tauxVal').textContent=parseFloat(this.value).toFixed(1)+'%';calcSim()"></div>
         <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-assurance" checked onchange="setSimOption('assurance', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Assurance emprunteur : <span id="assurVal" class="range-val">0.20%</span></span></label><input type="range" id="simAssur" min="0.10" max="0.50" step="0.01" value="0.20" oninput="document.getElementById('assurVal').textContent=parseFloat(this.value).toFixed(2)+'%';calcSim()"></div>
         <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-vacance" checked onchange="setSimOption('vacance', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Vacance locative : <span id="vacanceVal" class="range-val">1 mois/an</span></span></label><input type="range" id="simVacance" min="0" max="3" step="0.5" value="1" oninput="document.getElementById('vacanceVal').textContent=this.value+' mois/an';calcSim()"></div>
-        <div class="input-block"><label>Charges copro (€/mois)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simCopro" value="0" oninput="calcSim()"></div></div>
+        <div class="input-block"><label>Charges copro (€/mois)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simCopro" value="0" data-prev="0" oninput="onSimCoproChange()"></div></div>
       </div>
     </div>
 
@@ -230,6 +231,10 @@ function renderSimulateurTab() {
         <div class="loyer-kpi-left">
           <label>Loyer mensuel estimé ✏️</label>
           <div class="loyer-kpi-sub" id="lyrInfo">—</div>
+          <label id="ccToggleWrap" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin-top:8px;cursor:pointer;">
+            <input type="checkbox" id="optChargesInLoyer" onchange="setChargesInLoyer(this.checked)" style="cursor:pointer;accent-color:var(--gold);width:13px;height:13px;">
+            Inclure les charges (CC)
+          </label>
         </div>
         <div><input class="loyer-kpi-input" type="number" id="simLoyer" value="680" oninput="calcSim()"><div style="text-align:center;font-size:11px;color:var(--text3);margin-top:3px;">€/mois</div></div>
       </div>

@@ -16,7 +16,8 @@ let _sortAsc = true;
 const COLORS = ['#c9a84c','#2dd4bf','#818cf8','#f472b6','#34d399','#fb923c','#60a5fa','#a78bfa','#4ade80','#fbbf24','#e879f9','#38bdf8'];
 
 // Bonus équipements sur le loyer (mode Pro)
-const OPT_BONUS = { parking:0.05, balcon:0.03, jardin:0.06, cave:0.01, digicode:0.01, renove:0.04 };
+// `parking` reste défini pour retro-compat des projets sauvegardés avec l'ancienne case unique.
+const OPT_BONUS = { parking_ext:0.03, garage:0.08, parking:0.05, balcon:0.03, jardin:0.06, cave:0.01, digicode:0.01, renove:0.04 };
 
 // Quartiers détaillés de Lyon
 const LYON_QUARTIERS = [
@@ -42,6 +43,9 @@ let simColoc = { on: false, n: 2 };   // Colocation : actif + nombre de colocata
 let simOptions = { pret: true, duree: true, taux: true, assurance: true, vacance: true };
 let activeOpts = new Set();
 let simData = {};
+// Si true, le champ #simLoyer affiche le loyer charges comprises (HC + charges copro).
+// Les calculs de rentabilité restent toujours sur le loyer HC pour ne pas fausser les KPIs.
+let simChargesInLoyer = false;
 
 // Valeur spéciale du champ Ville pour activer le mode "Ville personnalisée"
 const CUSTOM_CITY = 'Ville personnalisée';
