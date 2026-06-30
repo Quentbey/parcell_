@@ -14,18 +14,39 @@
 <meta property="og:url" content="https://yrow.fr/">
 <meta name="twitter:card" content="summary_large_image">
 
+<!-- Preconnect : gain LCP en parallélisant la résolution DNS + handshake TLS -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+<link rel="dns-prefetch" href="https://odjxxbbufbumlyxgqkaq.supabase.co">
+
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/site.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏢</text></svg>">
 
+<!-- Organization : entité Yrow (reconnaissance par Google, Knowledge Panel) -->
 <script type="application/ld+json">
-{"@context":"https://schema.org","@type":"WebApplication","name":"Yrow","applicationCategory":"FinanceApplication","operatingSystem":"Web","description":"Simulateur de rentabilité locative et outil d'analyse immobilière sur villes françaises.","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"}}
+{"@context":"https://schema.org","@type":"Organization","@id":"https://yrow.fr/#organization","name":"Yrow","url":"https://yrow.fr/","logo":"https://yrow.fr/logo.png","description":"Simulateur de rentabilité locative et outil d'analyse immobilière pour la France.","address":{"@type":"PostalAddress","addressLocality":"Lyon","postalCode":"69003","addressCountry":"FR"},"email":"quentin.beyens@gmail.com","areaServed":"FR","knowsAbout":["Investissement locatif","Rentabilité immobilière","LMNP","Cashflow immobilier","Marché immobilier français"]}
 </script>
+
+<!-- WebApplication : positionne Yrow comme outil FinanceApp gratuit -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"Yrow","url":"https://yrow.fr/","applicationCategory":"FinanceApplication","applicationSubCategory":"Real estate investment simulator","operatingSystem":"Web","browserRequirements":"Requires JavaScript. Supports Chrome, Firefox, Safari, Edge.","inLanguage":"fr-FR","description":"Simulateur de rentabilité locative et outil d'analyse immobilière sur villes françaises. Calcul gratuit du rendement brut/net, mensualité de crédit et cashflow.","offers":{"@type":"Offer","price":"0","priceCurrency":"EUR"},"featureList":["Simulation de rentabilité locative","Calcul du rendement brut et net","Calcul de la mensualité de crédit","Estimation du cashflow mensuel","Comparaison de villes françaises","Sauvegarde et comparaison de projets","Quartiers de Lyon affinés","Mode LMNP / location nue"],"publisher":{"@id":"https://yrow.fr/#organization"}}
+</script>
+
+<!-- HowTo : balise la section "3 étapes" pour rich snippets Google -->
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"HowTo","name":"Comment simuler la rentabilité d'un investissement locatif en 3 étapes","description":"Estimez en 30 secondes le rendement réel, la mensualité et le cashflow de votre projet locatif avec Yrow.","totalTime":"PT1M","estimatedCost":{"@type":"MonetaryAmount","currency":"EUR","value":"0"},"step":[{"@type":"HowToStep","position":1,"name":"Choisir la ville et le bien","text":"Sélectionnez votre ville parmi les villes françaises proposées : les prix au m² et loyers de référence sont pré-remplis automatiquement.","url":"https://yrow.fr/app.html#simulateur"},{"@type":"HowToStep","position":2,"name":"Ajuster les paramètres","text":"Définissez la surface, le prix d'achat, l'apport, le taux et la durée du crédit, les charges, la vacance locative et le mode meublé ou nu.","url":"https://yrow.fr/app.html#simulateur"},{"@type":"HowToStep","position":3,"name":"Obtenir les indicateurs","text":"Le simulateur calcule rendement brut et net, mensualité de crédit, cashflow mensuel. Sauvegardez et comparez vos projets dans votre espace personnel.","url":"https://yrow.fr/app.html#simulateur"}]}
+</script>
+
+<!-- FAQPage : génère rich snippets (+30% CTR moyen sur SERP) -->
 <script type="application/ld+json">
 {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[
 {"@type":"Question","name":"Comment calculer la rentabilité d'un investissement locatif ?","acceptedAnswer":{"@type":"Answer","text":"La rentabilité brute = (loyer annuel ÷ prix d'achat) × 100. La rentabilité nette tient compte des charges, de la taxe foncière, de la vacance locative et des frais de gestion. Le simulateur Yrow calcule les deux automatiquement."}},
-{"@type":"Question","name":"Le simulateur Yrow est-il gratuit ?","acceptedAnswer":{"@type":"Answer","text":"Oui, le simulateur de rentabilité est entièrement gratuit et ne nécessite pas de compte pour être utilisé."}},
-{"@type":"Question","name":"Sur quelles données reposent les estimations ?","acceptedAnswer":{"@type":"Answer","text":"Yrow s'appuie sur les prix au m² et les loyers de villes françaises pour pré-remplir et fiabiliser vos simulations."}}
+{"@type":"Question","name":"Le simulateur Yrow est-il gratuit ?","acceptedAnswer":{"@type":"Answer","text":"Oui, le simulateur de rentabilité est entièrement gratuit et ne nécessite pas de compte pour être utilisé. La création d'un compte permet seulement de sauvegarder vos projets et de les comparer."}},
+{"@type":"Question","name":"Sur quelles données reposent les estimations ?","acceptedAnswer":{"@type":"Answer","text":"Yrow s'appuie sur les Demandes de Valeurs Foncières (DVF, transactions réelles), les données INSEE et les observatoires des loyers pour fournir des prix au m² et loyers de référence par ville française."}},
+{"@type":"Question","name":"Quelle est la différence entre rentabilité brute et nette ?","acceptedAnswer":{"@type":"Answer","text":"La rentabilité brute ignore les charges et la fiscalité — c'est le chiffre affiché par les annonces. La rentabilité nette retranche les charges réelles (taxe foncière, copro, gestion, assurance, vacance) et donne une vision honnête du rendement réel."}},
+{"@type":"Question","name":"Yrow couvre-t-il toutes les villes françaises ?","acceptedAnswer":{"@type":"Answer","text":"Le simulateur couvre les principales villes françaises (Lyon, Bordeaux, Lille, Nantes, Toulouse, Rennes, Montpellier, Grenoble, Strasbourg, Nice, Marseille, et plus). Une option Ville personnalisée permet aussi de saisir manuellement vos propres données pour les communes non couvertes."}}
 ]}
 </script>
 </head>
@@ -213,9 +234,11 @@
   <div class="wrap">
     <div class="section-head reveal"><h2>Questions fréquentes</h2></div>
     <div class="faq">
-      <article class="faq-item reveal"><h3>Comment calculer la rentabilité d'un investissement locatif ?</h3><p>La rentabilité brute = (loyer annuel ÷ prix d'achat) × 100. La rentabilité nette tient compte des charges, de la taxe foncière, de la vacance locative et des frais de gestion. Le simulateur calcule les deux automatiquement.</p></article>
-      <article class="faq-item reveal d1"><h3>Le simulateur Yrow est-il gratuit ?</h3><p>Oui, le simulateur de rentabilité est entièrement gratuit et utilisable sans créer de compte. Un compte gratuit permet seulement de sauvegarder vos projets.</p></article>
-      <article class="faq-item reveal d2"><h3>Sur quelles données reposent les estimations ?</h3><p>Yrow s'appuie sur les prix au m² et les loyers de référence de villes françaises pour pré-remplir et fiabiliser vos simulations.</p></article>
+      <article class="faq-item reveal"><h3>Comment calculer la rentabilité d'un investissement locatif ?</h3><p>La rentabilité brute = (loyer annuel ÷ prix d'achat) × 100. La rentabilité nette tient compte des charges, de la taxe foncière, de la vacance locative et des frais de gestion. Le simulateur Yrow calcule les deux automatiquement.</p></article>
+      <article class="faq-item reveal d1"><h3>Le simulateur Yrow est-il gratuit ?</h3><p>Oui, le simulateur de rentabilité est entièrement gratuit et utilisable sans créer de compte. La création d'un compte permet seulement de sauvegarder vos projets et de les comparer.</p></article>
+      <article class="faq-item reveal d2"><h3>Sur quelles données reposent les estimations ?</h3><p>Yrow s'appuie sur les Demandes de Valeurs Foncières (DVF, transactions réelles), les données INSEE et les observatoires des loyers pour fournir des prix au m² et loyers de référence par ville française.</p></article>
+      <article class="faq-item reveal d3"><h3>Quelle est la différence entre rentabilité brute et nette ?</h3><p>La rentabilité brute ignore les charges et la fiscalité — c'est le chiffre affiché par les annonces. La rentabilité nette retranche les charges réelles (taxe foncière, copro, gestion, assurance, vacance) et donne une vision honnête du rendement réel de votre investissement.</p></article>
+      <article class="faq-item reveal d3"><h3>Yrow couvre-t-il toutes les villes françaises ?</h3><p>Le simulateur couvre les principales villes françaises (Lyon, Bordeaux, Lille, Nantes, Toulouse, Rennes, Montpellier, Grenoble, Strasbourg, Nice, Marseille, et plus). Une option « Ville personnalisée » permet aussi de saisir manuellement vos propres données pour les communes non couvertes.</p></article>
     </div>
   </div>
 </section>

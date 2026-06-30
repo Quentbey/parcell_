@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /app.html
 
-Sitemap: https://yrow.pages.dev/sitemap.xml
+Sitemap: https://yrow.fr/sitemap.xml
