@@ -422,9 +422,14 @@ document.addEventListener('click', e => {
 });
 
 // ── Lance l'auth au chargement ──
-// Gère les deux cas : DOM encore en cours de chargement, ou déjà prêt (scripts en bas de body)
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initAuth);
-} else {
+// Avec `defer` sur les scripts, quand ce fichier s'exécute, les scripts suivants
+// (simulator.js, projects.js, admin.js, app.js) ne sont PAS encore exécutés.
+// initApp() (défini dans app.js) n'existe donc pas encore.
+// On attend systématiquement DOMContentLoaded : à ce moment-là tous les scripts
+// deferred ont fini de s'exécuter et toutes les fonctions sont définies.
+if (document.readyState === 'complete') {
+  // Cas rare : chargement post-DOMContentLoaded (script dynamique)
   initAuth();
+} else {
+  document.addEventListener('DOMContentLoaded', initAuth);
 }
