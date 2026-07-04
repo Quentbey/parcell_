@@ -1,0 +1,15 @@
+{
+  "name": "Yrow — Simulateur rentabilité locative",
+  "short_name": "Yrow",
+  "description": "Simulateur de rentabilité locative gratuit : rendement net, mensualité, cashflow. Données réelles de villes françaises.",
+  "start_url": "/",
+  "display": "minimal-ui",
+  "background_color": "#080b12",
+  "theme_color": "#c9a84c",
+  "lang": "fr-FR",
+  "categories": ["finance", "productivity", "utilities"],
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+  ]
+}
