@@ -211,6 +211,15 @@
         };
       }
       applyTab(tabFromHash());
+      // Ouvre directement la fenetre de connexion si on arrive via "Connexion" depuis la home
+      // (lien home : app.html?auth=login). Ne fait rien si l'utilisateur est deja connecte.
+      if (/[?&]auth=login/.test(location.search)) {
+        (function openLogin(tries){
+          if ((typeof currentUser !== 'undefined') && currentUser) return; // deja connecte
+          if (typeof showAuthModal === 'function') { showAuthModal('login'); }
+          else if (tries > 0) { setTimeout(function(){ openLogin(tries - 1); }, 200); }
+        })(15);
+      }
     },150);
   });
 
