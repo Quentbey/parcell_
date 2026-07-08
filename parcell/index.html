@@ -92,7 +92,7 @@
     <div class="nav-cta">
       <!-- Boutons par défaut (utilisateur non connecté) -->
       <div id="navGuestHome" style="display:flex;align-items:center;gap:12px;">
-        <a href="/app.html?auth=login" class="btn btn-ghost">Connexion</a>
+        <a href="/app.html?auth=login" onclick="if(window.openHomeAuth){event.preventDefault();openHomeAuth('login');return false;}" class="btn btn-ghost">Connexion</a>
         <a href="/app.html#simulateur" class="btn btn-primary">Lancer le simulateur</a>
       </div>
       <!-- Chip utilisateur (révélé par JS si une session Supabase existe) -->
@@ -508,6 +508,147 @@
     }
     requestAnimationFrame(spotlights);
   }
+})();
+</script>
+
+<!-- ══ Modal Connexion / Inscription sur la home ══
+     Autonome : n'inclut PAS auth.js (qui manipule le DOM de l'app).
+     Utilise directement supabaseClient (chargé par config.js ci-dessus). -->
+<script>
+(function(){
+  function renderAuthHTML(mode){
+    var isLogin  = mode === 'login';
+    var isSignup = mode === 'signup';
+    var isReset  = mode === 'forgot';
+    return '<div style="position:relative;width:100%;max-width:440px;">'
+      + '<button type="button" onclick="closeHomeAuth()" aria-label="Fermer" style="position:absolute;top:-14px;right:-14px;z-index:10;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.13);border-radius:50%;width:32px;height:32px;color:#7e8a9e;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;transition:background .2s;" onmouseover="this.style.background=\'rgba(255,255,255,0.16)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.08)\'">✕</button>'
+      + '<div style="text-align:center;margin-bottom:32px;">'
+      +   '<div style="width:48px;height:48px;background:linear-gradient(135deg,#c9a84c,#e8c97a);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 4px 20px rgba(201,168,76,0.3);">'
+      +     '<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0a0d14" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>'
+      +   '</div>'
+      +   '<div style="font-family:\'Outfit\',sans-serif;font-weight:700;font-size:24px;color:#e4e8f2;letter-spacing:-0.02em;">Yr<span style="color:#c9a84c;">ow</span></div>'
+      +   '<div style="font-size:13px;color:#7e8a9e;margin-top:4px;">' + (isLogin ? 'Bon retour 👋' : isSignup ? 'Créez votre compte gratuit' : 'Réinitialiser le mot de passe') + '</div>'
+      + '</div>'
+      + '<div style="background:#161c2e;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:28px;">'
+      + (isLogin || isSignup ? (
+          '<button type="button" onclick="homeGoogle()" style="width:100%;padding:11px;background:#fff;border:none;border-radius:10px;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:600;color:#1a1a2e;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:18px;transition:opacity .2s;" onmouseover="this.style.opacity=\'.92\'" onmouseout="this.style.opacity=\'1\'">'
+        +   '<svg width="18" height="18" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>'
+        +   'Continuer avec Google'
+        + '</button>'
+        + '<div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;"><div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div><span style="font-size:12px;color:#4e5a6e;">ou</span><div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div></div>'
+        ) : '')
+      + '<div id="homeAuthError" style="display:none;background:rgba(248,113,113,0.1);border:1px solid rgba(248,113,113,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#f87171;margin-bottom:14px;"></div>'
+      + '<div id="homeAuthSuccess" style="display:none;background:rgba(52,211,153,0.1);border:1px solid rgba(52,211,153,0.3);border-radius:8px;padding:10px 14px;font-size:13px;color:#34d399;margin-bottom:14px;"></div>'
+      + (isSignup ? '<div style="margin-bottom:12px;"><label style="display:block;font-size:12px;color:#7e8a9e;margin-bottom:5px;font-weight:500;">Prénom et nom</label><input id="homeAuthName" type="text" placeholder="Thomas Dupont" style="width:100%;background:#0e1220;border:1px solid rgba(255,255,255,0.11);border-radius:8px;color:#e4e8f2;padding:10px 13px;font-family:\'DM Sans\',sans-serif;font-size:14px;outline:none;transition:border-color .2s;box-sizing:border-box;"></div>' : '')
+      + '<div style="margin-bottom:12px;"><label style="display:block;font-size:12px;color:#7e8a9e;margin-bottom:5px;font-weight:500;">Email</label><input id="homeAuthEmail" type="email" placeholder="vous@email.fr" onkeydown="if(event.key===\'Enter\')homeSubmit(\'' + mode + '\')" style="width:100%;background:#0e1220;border:1px solid rgba(255,255,255,0.11);border-radius:8px;color:#e4e8f2;padding:10px 13px;font-family:\'DM Sans\',sans-serif;font-size:14px;outline:none;transition:border-color .2s;box-sizing:border-box;"></div>'
+      + (!isReset ? '<div style="margin-bottom:' + (isLogin ? '8px' : '16px') + ';"><label style="display:block;font-size:12px;color:#7e8a9e;margin-bottom:5px;font-weight:500;">Mot de passe</label><input id="homeAuthPassword" type="password" placeholder="' + (isSignup ? 'Minimum 8 caractères' : '••••••••') + '" onkeydown="if(event.key===\'Enter\')homeSubmit(\'' + mode + '\')" style="width:100%;background:#0e1220;border:1px solid rgba(255,255,255,0.11);border-radius:8px;color:#e4e8f2;padding:10px 13px;font-family:\'DM Sans\',sans-serif;font-size:14px;outline:none;transition:border-color .2s;box-sizing:border-box;"></div>' : '')
+      + (isSignup ? '<div style="margin-bottom:16px;"><label style="display:block;font-size:12px;color:#7e8a9e;margin-bottom:5px;font-weight:500;">Confirmer le mot de passe</label><input id="homeAuthPasswordConfirm" type="password" placeholder="••••••••" onkeydown="if(event.key===\'Enter\')homeSubmit(\'signup\')" style="width:100%;background:#0e1220;border:1px solid rgba(255,255,255,0.11);border-radius:8px;color:#e4e8f2;padding:10px 13px;font-family:\'DM Sans\',sans-serif;font-size:14px;outline:none;transition:border-color .2s;box-sizing:border-box;"></div>' : '')
+      + (isLogin ? '<div style="text-align:right;margin-bottom:16px;"><span onclick="openHomeAuth(\'forgot\')" style="font-size:12px;color:#7e8a9e;cursor:pointer;">Mot de passe oublié ?</span></div>' : '')
+      + '<button type="button" id="homeAuthSubmitBtn" onclick="homeSubmit(\'' + mode + '\')" style="width:100%;padding:12px;background:linear-gradient(135deg,#c9a84c,#e8c97a);border:none;border-radius:10px;color:#0a0d14;font-family:\'DM Sans\',sans-serif;font-size:14px;font-weight:700;cursor:pointer;letter-spacing:0.01em;">' + (isLogin ? 'Se connecter' : isSignup ? 'Créer mon compte' : 'Envoyer le lien') + '</button>'
+      + (isSignup ? '<div style="font-size:11px;color:#4e5a6e;text-align:center;margin-top:12px;line-height:1.5;">En vous inscrivant, vous acceptez nos <a href="/cgu.html" style="color:#7e8a9e;text-decoration:underline;">CGU</a> et notre <a href="/confidentialite.html" style="color:#7e8a9e;text-decoration:underline;">politique de confidentialité</a>.</div>' : '')
+      + '</div>'
+      + '<div style="text-align:center;margin-top:18px;font-size:13px;color:#7e8a9e;">'
+      +   (isLogin  ? 'Pas encore de compte ? <span onclick="openHomeAuth(\'signup\')" style="color:#c9a84c;cursor:pointer;font-weight:600;">Créer un compte</span>' : '')
+      +   (isSignup ? 'Déjà un compte ? <span onclick="openHomeAuth(\'login\')" style="color:#c9a84c;cursor:pointer;font-weight:600;">Se connecter</span>' : '')
+      +   (isReset  ? '<span onclick="openHomeAuth(\'login\')" style="color:#c9a84c;cursor:pointer;font-weight:600;">← Retour à la connexion</span>' : '')
+      + '</div>'
+      + '</div>';
+  }
+
+  window.openHomeAuth = function(mode){
+    mode = mode || 'login';
+    // Fallback : si supabaseClient pas prêt, on route vers /app.html (auth.js prendra le relais).
+    if (typeof supabaseClient === 'undefined') { location.href = '/app.html?auth=' + encodeURIComponent(mode); return; }
+    var wall = document.getElementById('homeAuthWall');
+    if (!wall) {
+      wall = document.createElement('div');
+      wall.id = 'homeAuthWall';
+      wall.addEventListener('click', function(e){ if (e.target === wall) closeHomeAuth(); });
+      document.body.appendChild(wall);
+    }
+    wall.style.cssText = 'display:flex;position:fixed;inset:0;z-index:1000;background:rgba(8,11,18,0.88);backdrop-filter:blur(6px);align-items:center;justify-content:center;padding:24px;';
+    wall.innerHTML = renderAuthHTML(mode);
+    setTimeout(function(){ var el = document.getElementById('homeAuthEmail'); if (el) el.focus(); }, 50);
+  };
+
+  window.closeHomeAuth = function(){
+    var w = document.getElementById('homeAuthWall');
+    if (w) w.style.display = 'none';
+  };
+
+  // ESC ferme la modal
+  document.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') closeHomeAuth();
+  });
+
+  function _translate(msg){
+    var m = {
+      'Invalid login credentials': 'Email ou mot de passe incorrect.',
+      'Email not confirmed': 'Veuillez confirmer votre email avant de vous connecter.',
+      'User already registered': 'Un compte existe déjà avec cet email.',
+      'Password should be at least 6 characters': 'Le mot de passe doit faire au moins 6 caractères.',
+      'Email rate limit exceeded': 'Trop de tentatives. Attendez quelques minutes.'
+    };
+    return m[msg] || msg || 'Une erreur est survenue. Réessayez.';
+  }
+
+  window.homeSubmit = async function(mode){
+    var btn = document.getElementById('homeAuthSubmitBtn');
+    var errEl = document.getElementById('homeAuthError');
+    var sucEl = document.getElementById('homeAuthSuccess');
+    var showErr = function(msg){ if(errEl){errEl.textContent = msg; errEl.style.display='block';} if(sucEl) sucEl.style.display='none'; };
+    var showOk  = function(msg){ if(sucEl){sucEl.textContent = msg; sucEl.style.display='block';} if(errEl) errEl.style.display='none'; };
+
+    var original = btn ? btn.textContent : '';
+    if (btn) { btn.textContent = 'Chargement…'; btn.style.opacity = '0.7'; btn.disabled = true; }
+
+    try {
+      var email = (document.getElementById('homeAuthEmail')||{}).value || '';
+      email = email.trim();
+      var pwd = (document.getElementById('homeAuthPassword')||{}).value || '';
+
+      if (mode === 'forgot') {
+        if (!email) return showErr('Veuillez entrer votre email.');
+        var r1 = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo: location.origin + '/?reset=true' });
+        if (r1.error) throw r1.error;
+        showOk('Lien de réinitialisation envoyé ! Vérifiez votre boîte mail.');
+        return;
+      }
+      if (mode === 'signup') {
+        var confirm = (document.getElementById('homeAuthPasswordConfirm')||{}).value || '';
+        var fullName = ((document.getElementById('homeAuthName')||{}).value || '').trim();
+        if (!email || !pwd) return showErr('Email et mot de passe requis.');
+        if (pwd.length < 8)  return showErr('Le mot de passe doit faire au moins 8 caractères.');
+        if (pwd !== confirm)  return showErr('Les mots de passe ne correspondent pas.');
+        var r2 = await supabaseClient.auth.signUp({ email: email, password: pwd, options: { data: { full_name: fullName } } });
+        if (r2.error) throw r2.error;
+        showOk('Compte créé ! Vérifiez votre email pour confirmer votre inscription.');
+        return;
+      }
+      // login
+      if (!email || !pwd) return showErr('Email et mot de passe requis.');
+      var r3 = await supabaseClient.auth.signInWithPassword({ email: email, password: pwd });
+      if (r3.error) throw r3.error;
+      // Connexion réussie → on redirige vers l'app.
+      location.href = '/app.html';
+    } catch (err) {
+      showErr(_translate(err && err.message));
+    } finally {
+      if (btn) { btn.textContent = original; btn.style.opacity = '1'; btn.disabled = false; }
+    }
+  };
+
+  window.homeGoogle = async function(){
+    try {
+      await supabaseClient.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: location.origin + '/app.html', queryParams: { prompt: 'select_account' } }
+      });
+    } catch(e) {
+      var el = document.getElementById('homeAuthError');
+      if (el) { el.textContent = 'Erreur Google : ' + (e && e.message); el.style.display = 'block'; }
+    }
+  };
 })();
 </script>
 </body>
