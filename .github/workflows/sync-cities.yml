@@ -1,0 +1,56 @@
+name: Sync cities data (DVF + loyers + INSEE → Supabase)
+
+# Déclenchement :
+#  - Manuel : Actions tab → "Run workflow"
+#  - Auto : 1er de chaque mois à 3h UTC
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: "Top N communes à importer (défaut 1000)"
+        required: false
+        default: "1000"
+      dry_run:
+        description: "Dry run (log sans upsert Supabase)"
+        type: boolean
+        required: false
+        default: false
+  schedule:
+    - cron: "0 3 1 * *"  # 1er du mois, 03:00 UTC
+
+jobs:
+  sync:
+    name: Import top villes → Supabase
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    concurrency:
+      group: sync-cities
+      cancel-in-progress: false
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run ETL script
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: |
+          set -e
+          LIMIT="${{ github.event.inputs.limit || '1000' }}"
+          DRY_RUN_FLAG=""
+          if [ "${{ github.event.inputs.dry_run }}" = "true" ]; then
+            DRY_RUN_FLAG="--dry-run"
+          fi
+          python scripts/sync_cities.py --limit "$LIMIT" $DRY_RUN_FLAG
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "### Sync cities terminé" >> $GITHUB_STEP_SUMMARY
+          echo "Voir les logs de l'étape ETL ci-dessus pour le détail." >> $GITHUB_STEP_SUMMARY
