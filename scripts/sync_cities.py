@@ -415,38 +415,75 @@ def upsert_supabase(records: List[dict], dry_run: bool = False) -> None:
         print("  " + json.dumps(records[0], indent=2, ensure_ascii=False))
         return
 
-    # strip() indispensable : un espace ou \n collé par erreur dans le secret GitHub
-    # casse urllib avec "Invalid header value" (les headers HTTP interdisent CR/LF).
-    supa_url = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
-    supa_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    # Nettoyage stricte : supprime whitespace ET tout caractère non-ASCII printable.
+    # urllib exige des headers Latin-1 stricts (RFC 7230). Si le secret contient
+    # un espace insécable, tab, CR/LF, ou caractère UTF-8 exotique (copy-paste
+    # depuis un dashboard qui rend en HTML), le header Authorization est rejeté.
+    def _clean(s: str) -> str:
+        s = s.strip()
+        # Ne garde que les caractères ASCII printables (codes 33-126) + rien d'autre
+        return "".join(c for c in s if 33 <= ord(c) <= 126)
+
+    supa_url = _clean(os.environ.get("SUPABASE_URL", "")).rstrip("/")
+    supa_key = _clean(os.environ.get("SUPABASE_SERVICE_ROLE_KEY", ""))
     if not supa_url or not supa_key:
         print("❌ SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY doivent être définis", file=sys.stderr)
         sys.exit(1)
 
+    # Debug non-sensible : longueur et signature de la clé pour diagnose future
+    print(f"  🔑 URL length={len(supa_url)}, key length={len(supa_key)}, "
+          f"key starts with '{supa_key[:12]}...'", flush=True)
+
     endpoint = f"{supa_url}/rest/v1/cities?on_conflict=code_insee"
-    headers = {
-        "apikey": supa_key,
-        "Authorization": f"Bearer {supa_key}",
-        "Content-Type": "application/json",
-        "Prefer": "resolution=merge-duplicates,return=minimal",
-    }
+    # Encode explicitement chaque header en Latin-1 pour repérer un pb en amont
+    try:
+        auth_header = f"Bearer {supa_key}".encode("latin-1")
+        apikey_header = supa_key.encode("latin-1")
+    except UnicodeEncodeError as e:
+        print(f"❌ Clé Supabase contient un caractère non-Latin-1 : {e}", file=sys.stderr)
+        sys.exit(1)
+
+    # On bascule sur http.client bas-niveau + control complet des headers (byte-safe).
+    import http.client
+    from urllib.parse import urlparse
+    parsed = urlparse(endpoint)
+    host = parsed.hostname
+    path = parsed.path + ("?" + parsed.query if parsed.query else "")
+
+    def _post_batch(batch_body: bytes) -> Tuple[int, str]:
+        conn = http.client.HTTPSConnection(host, timeout=HTTP_TIMEOUT)
+        try:
+            conn.request(
+                "POST",
+                path,
+                body=batch_body,
+                headers={
+                    "apikey": apikey_header.decode("latin-1"),
+                    "Authorization": auth_header.decode("latin-1"),
+                    "Content-Type": "application/json",
+                    "Prefer": "resolution=merge-duplicates,return=minimal",
+                    "Host": host,
+                },
+            )
+            resp = conn.getresponse()
+            body = resp.read().decode("utf-8", errors="replace")
+            return resp.status, body
+        finally:
+            conn.close()
 
     total_ok = 0
     for i in range(0, len(records), BATCH_SIZE):
         batch = records[i:i + BATCH_SIZE]
         body = json.dumps(batch, ensure_ascii=False).encode("utf-8")
-        req = urllib.request.Request(endpoint, data=body, method="POST")
-        for k, v in headers.items():
-            req.add_header(k, v)
         try:
-            with urllib.request.urlopen(req, timeout=HTTP_TIMEOUT) as resp:
+            status, resp_body = _post_batch(body)
+            if 200 <= status < 300:
                 total_ok += len(batch)
-                print(f"  ✅ Batch {i//BATCH_SIZE + 1}: {len(batch)} rows (HTTP {resp.status})")
-        except urllib.error.HTTPError as e:
-            msg = e.read().decode("utf-8", errors="replace")[:500]
-            print(f"  ❌ Batch {i//BATCH_SIZE + 1} — HTTP {e.code}: {msg}", file=sys.stderr)
+                print(f"  ✅ Batch {i//BATCH_SIZE + 1}: {len(batch)} rows (HTTP {status})")
+            else:
+                print(f"  ❌ Batch {i//BATCH_SIZE + 1} — HTTP {status}: {resp_body[:500]}", file=sys.stderr)
         except Exception as e:
-            print(f"  ❌ Batch {i//BATCH_SIZE + 1} — {e}", file=sys.stderr)
+            print(f"  ❌ Batch {i//BATCH_SIZE + 1} — {type(e).__name__}: {e}", file=sys.stderr)
         time.sleep(0.3)  # gentle avec Supabase
 
     print(f"→ Total upsert : {total_ok}/{len(records)}")
