@@ -415,8 +415,10 @@ def upsert_supabase(records: List[dict], dry_run: bool = False) -> None:
         print("  " + json.dumps(records[0], indent=2, ensure_ascii=False))
         return
 
-    supa_url = os.environ.get("SUPABASE_URL", "").rstrip("/")
-    supa_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
+    # strip() indispensable : un espace ou \n collé par erreur dans le secret GitHub
+    # casse urllib avec "Invalid header value" (les headers HTTP interdisent CR/LF).
+    supa_url = os.environ.get("SUPABASE_URL", "").strip().rstrip("/")
+    supa_key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
     if not supa_url or not supa_key:
         print("❌ SUPABASE_URL et SUPABASE_SERVICE_ROLE_KEY doivent être définis", file=sys.stderr)
         sys.exit(1)
