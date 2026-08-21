@@ -358,13 +358,28 @@ def build_city_records(
         pop = c.get("population") or 0
         in_zt = insee in zt
 
+        # IMPORTANT : PostgREST exige que tous les objets d'un batch upsert aient
+        # exactement les MÊMES clés (PGRST102 "All object keys must match" sinon).
+        # Donc on force toutes les colonnes optionnelles à None si data manquante,
+        # plutôt que d'omettre la clé.
+        centre = c.get("centre") or {}
+        coords = centre.get("coordinates") or []
+        px = prices.get(insee, {})
+        ly = loyers.get(insee, {})
+
         rec = {
             "nom": c["nom"],
             "code_insee": insee,
             "departement": (c.get("departement") or {}).get("nom") or "",
             "dept_code": c.get("codeDepartement") or "",
             "region": (c.get("region") or {}).get("nom") or "",
+            "lat": coords[1] if len(coords) == 2 else None,
+            "lon": coords[0] if len(coords) == 2 else None,
             "pop_2022": pop,
+            "prix_m2_apt": px.get("prix_m2_apt"),
+            "prix_m2_msn": px.get("prix_m2_msn"),
+            "loyer_m2_apt": ly.get("loyer_m2_apt"),
+            "loyer_m2_msn": ly.get("loyer_m2_msn"),
             "salaire_median": 2100,  # placeholder V1 (moyenne nationale approximative)
             "age_median": 40,
             "tension_loc": compute_tension(insee, in_zt, pop),
@@ -374,27 +389,6 @@ def build_city_records(
             "derniere_maj": today,
             "actif": True,
         }
-
-        # Coordonnées GPS
-        centre = c.get("centre") or {}
-        coords = centre.get("coordinates") or []
-        if len(coords) == 2:
-            rec["lon"] = coords[0]
-            rec["lat"] = coords[1]
-
-        # Prix DVF
-        px = prices.get(insee, {})
-        if "prix_m2_apt" in px:
-            rec["prix_m2_apt"] = px["prix_m2_apt"]
-        if "prix_m2_msn" in px:
-            rec["prix_m2_msn"] = px["prix_m2_msn"]
-
-        # Loyers
-        ly = loyers.get(insee, {})
-        if "loyer_m2_apt" in ly:
-            rec["loyer_m2_apt"] = ly["loyer_m2_apt"]
-        if "loyer_m2_msn" in ly:
-            rec["loyer_m2_msn"] = ly["loyer_m2_msn"]
 
         records.append(rec)
 
