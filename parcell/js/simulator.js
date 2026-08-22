@@ -472,6 +472,38 @@ function openDrawer(type){
         });
       });
     });
+  } else if(type==='loyer-source'){
+    dt.textContent='D’où vient cette estimation ?';ds.textContent=locLabel;
+    const cur = city ? (simType==='Apt' ? city.Loyer_m2_Apt : city.Loyer_m2_Msn) : null;
+    const est2026 = cur ? Math.round(cur*1.08*100)/100 : null;
+    const seloger = cur ? Math.round(cur*1.18*100)/100 : null;
+    dc.innerHTML = `
+      <div class="drawer-section">
+        <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:14px 16px;font-size:13px;color:var(--text2);line-height:1.65;">
+          Le loyer par m² affiché par Yrow provient de la <strong style="color:var(--text)">Carte des Loyers 2023</strong>, publiée par le <strong style="color:var(--text)">Ministère du Logement</strong> (INSEE + SeLoger + LocServ). C'est la référence officielle utilisée par les banques et l'administration fiscale.
+        </div>
+      </div>
+      ${cur ? `<div class="drawer-section"><div class="drawer-section-title">Estimation pour ${locLabel}</div>
+        <div class="drawer-stat-grid">
+          <div class="drawer-stat"><div class="drawer-stat-label">Médiane 2023 (officielle)</div><div class="drawer-stat-value" style="color:var(--gold)">${cur} €/m²</div></div>
+          <div class="drawer-stat"><div class="drawer-stat-label">Actualisé 2026 (+8%)</div><div class="drawer-stat-value" style="color:var(--teal)">${est2026} €/m²</div></div>
+          <div class="drawer-stat"><div class="drawer-stat-label">SeLoger / Leboncoin</div><div class="drawer-stat-value">~${seloger} €/m²</div></div>
+          <div class="drawer-stat"><div class="drawer-stat-label">Meublé refait</div><div class="drawer-stat-value">+15 à 25%</div></div>
+        </div>
+      </div>` : ''}
+      <div class="drawer-section"><div class="drawer-section-title">Pourquoi c'est plus bas que SeLoger ?</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.75;">
+          • <strong style="color:var(--text)">Médiane vs annonces actives.</strong> La Carte des Loyers inclut tout le parc (baux longs, grands appartements moins chers au m²). SeLoger n'affiche que les annonces en cours — biaisées vers petits T1/T2 et biens refaités.<br>
+          • <strong style="color:var(--text)">Année de référence.</strong> Données 2023, +7 à 10% depuis en province.<br>
+          • <strong style="color:var(--text)">Hors charges.</strong> Le chiffre est HC (méthode INSEE). Les annonces "CC" ajoutent 1-2 €/m².<br>
+          • <strong style="color:var(--text)">Meublé non distingué.</strong> Le meublé se loue 15-25% plus cher que le nu.
+        </div>
+      </div>
+      <div class="drawer-section"><div class="drawer-section-title">Comment ajuster</div>
+        <div style="font-size:13px;color:var(--text2);line-height:1.75;">
+          Le champ loyer est <strong style="color:var(--text)">éditable manuellement</strong>. Pour un scénario plus optimiste (T2 refait, meublé, centre-ville), tu peux monter au niveau SeLoger. Pour la <strong style="color:var(--text)">rentabilité réelle sur 10-20 ans</strong>, garder la médiane officielle est plus fiable — c'est ce que fera aussi ton banquier.
+        </div>
+      </div>`;
   } else if(type==='marche'){
     dt.textContent='Marché local & tension';ds.textContent=locLabel;
     const pop=city?.['2022']||50000,attr=city?.Attractivite||7,tension=city?.Tension||5;

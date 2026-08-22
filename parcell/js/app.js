@@ -229,7 +229,7 @@ function renderSimulateurTab() {
       </div>
       <div class="loyer-kpi">
         <div class="loyer-kpi-left">
-          <label>Loyer mensuel estimé ✏️</label>
+          <label>Loyer mensuel estimé ✏️ <span class="loyer-src-info" onclick="openDrawer('loyer-source')" title="D'où vient cette estimation ?" role="button" aria-label="Source du loyer">ⓘ</span></label>
           <div class="loyer-kpi-sub" id="lyrInfo">—</div>
           <label id="ccToggleWrap" style="display:none;align-items:center;gap:6px;font-size:11px;color:var(--text2);margin-top:8px;cursor:pointer;">
             <input type="checkbox" id="optChargesInLoyer" onchange="setChargesInLoyer(this.checked)" style="cursor:pointer;accent-color:var(--gold);width:13px;height:13px;">
