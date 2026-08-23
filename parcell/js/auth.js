@@ -77,6 +77,7 @@ async function onUserLoggedIn(user) {
 function onUserLoggedOut() {
   currentUser    = null;
   currentProfile = null;
+  clearProfileCache();
   // L'app reste visible, on repasse simplement en mode invité
   showAppAsGuest();
 }
@@ -105,9 +106,28 @@ async function loadOrCreateProfile(user) {
       },
     };
     await supabaseClient.from('profiles').insert(newProfile);
+    cacheProfileLocally(user, newProfile);
     return newProfile;
   }
+  cacheProfileLocally(user, data);
   return data;
+}
+
+// Cache le profil dans localStorage → lu par nav-auth.js sur les pages statiques
+// (guides, villes) pour afficher le bon nom sans devoir refaire la requête DB
+function cacheProfileLocally(user, profile) {
+  try {
+    localStorage.setItem('yrow_profile', JSON.stringify({
+      email: user.email,
+      full_name: profile?.full_name || '',
+      avatar_url: profile?.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture || '',
+      cached_at: Date.now()
+    }));
+  } catch(e) {}
+}
+
+function clearProfileCache() {
+  try { localStorage.removeItem('yrow_profile'); } catch(e) {}
 }
 
 // ── Met à jour le nav (utilisateur connecté) ──

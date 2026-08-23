@@ -47,23 +47,37 @@
   }
 
   function signOut(){
-    // Purge tous les tokens Supabase du localStorage
+    // Purge tous les tokens Supabase + cache profil du localStorage
     try {
       Object.keys(localStorage).forEach(function(k){
         if (k.indexOf('sb-') === 0) localStorage.removeItem(k);
       });
+      localStorage.removeItem('yrow_profile');
     } catch(e){}
     location.reload();
   }
   window.yrowSignOut = signOut;
 
+  function readCachedProfile(){
+    try {
+      var raw = localStorage.getItem('yrow_profile');
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch(e){ return null; }
+  }
+
   function renderConnected(container, session){
     var user = session.user || {};
     var meta = user.user_metadata || {};
-    var name = meta.full_name || (user.email ? user.email.split('@')[0] : 'Compte');
+    var cached = readCachedProfile();
+    // Priorité au profil cache par app.js (nom édité dans "Mon profil"),
+    // sinon fallback sur user_metadata (nom d'inscription), sinon email
+    var name = (cached && cached.full_name)
+      || meta.full_name
+      || (user.email ? user.email.split('@')[0] : 'Compte');
     var firstName = name.split(' ')[0];
-    var email = user.email || '';
-    var avatar = meta.avatar_url || meta.avatar_picture || meta.picture;
+    var email = (cached && cached.email) || user.email || '';
+    var avatar = (cached && cached.avatar_url) || meta.avatar_url || meta.avatar_picture || meta.picture;
 
     ensureStyles();
 

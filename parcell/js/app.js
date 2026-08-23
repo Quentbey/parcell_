@@ -491,6 +491,7 @@ async function saveProfile() {
   if (error) { showToast('Erreur lors de la sauvegarde', 'err'); return; }
   if (currentProfile) { currentProfile.full_name = fullName; }
   updateNavUser(currentUser, currentProfile);
+  if (typeof cacheProfileLocally === 'function') cacheProfileLocally(currentUser, currentProfile);
   showToast('Profil mis à jour ✓');
 }
 
