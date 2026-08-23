@@ -27,7 +27,15 @@ function toggleOpt(name,el){
   cb.checked=!cb.checked;
   if(cb.checked){activeOpts.add(name);el.classList.add('checked');}
   else{activeOpts.delete(name);el.classList.remove('checked');}
+  refreshOptsCount();
   updateSimLoyer();
+}
+
+function refreshOptsCount(){
+  const el=document.getElementById('optsCount'); if(!el) return;
+  const n=activeOpts.size;
+  el.textContent = n ? (n+' actif'+(n>1?'s':'')) : '';
+  el.classList.toggle('has-active', n>0);
 }
 
 // ═══ SYNC entre simple et pro ═══
@@ -403,7 +411,7 @@ function openDrawer(type){
   const ville=document.getElementById('simVille').value;
   const city=VILLES.find(c=>c.Ville===ville);
   const qCode=document.getElementById('simQuartier').value;
-  const locLabel=city?.hasQuartiers&&qCode?`${ville} — ${qCode}`:ville;
+  const locLabel=city?.hasQuartiers&&qCode?`${ville} · ${qCode}`:ville;
   const dt=document.getElementById('drawerTitle'),ds=document.getElementById('drawerSubtitle'),dc=document.getElementById('drawerContent');
 
   if(type==='rentabilite'){
@@ -417,7 +425,7 @@ function openDrawer(type){
         <div class="drawer-stat"><div class="drawer-stat-label">Loyer annuel</div><div class="drawer-stat-value">${fmt(Math.round(simData.loyer*12))} €</div></div>
         <div class="drawer-stat"><div class="drawer-stat-label">Coût total</div><div class="drawer-stat-value">${fmt(simData.total)} €</div></div>
       </div>
-      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;">${bench} — Rentabilité brute de <strong>${rb}%</strong><br><span style="color:var(--text3);font-size:12px;">Vacance ${simData.vacance} mois/an · Charges ${fmt(Math.round(simData.chargesMens*12))} €/an</span></div>
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;">${bench} · Rentabilité brute de <strong>${rb}%</strong><br><span style="color:var(--text3);font-size:12px;">Vacance ${simData.vacance} mois/an · Charges ${fmt(Math.round(simData.chargesMens*12))} €/an</span></div>
     </div>
     <div class="drawer-section"><div class="drawer-section-title">Pistes d'amélioration</div><div style="font-size:13px;color:var(--text2);line-height:1.7;">• Négocier le prix d'achat<br>• Passer en meublé LMNP (+15–20% loyer)<br>• Choisir un quartier à forte tension locative<br>• Réduire vacance : bon emplacement, gestion proactive</div></div>`;
   } else if(type==='credit'){
@@ -493,7 +501,7 @@ function openDrawer(type){
       </div>` : ''}
       <div class="drawer-section"><div class="drawer-section-title">Pourquoi c'est plus bas que SeLoger ?</div>
         <div style="font-size:13px;color:var(--text2);line-height:1.75;">
-          • <strong style="color:var(--text)">Médiane vs annonces actives.</strong> La Carte des Loyers inclut tout le parc (baux longs, grands appartements moins chers au m²). SeLoger n'affiche que les annonces en cours — biaisées vers petits T1/T2 et biens refaités.<br>
+          • <strong style="color:var(--text)">Médiane vs annonces actives.</strong> La Carte des Loyers inclut tout le parc (baux longs, grands appartements moins chers au m²). SeLoger n'affiche que les annonces en cours, biaisées vers petits T1/T2 et biens refaités.<br>
           • <strong style="color:var(--text)">Année de référence.</strong> Données 2023, +7 à 10% depuis en province.<br>
           • <strong style="color:var(--text)">Hors charges.</strong> Le chiffre est HC (méthode INSEE). Les annonces "CC" ajoutent 1-2 €/m².<br>
           • <strong style="color:var(--text)">Meublé non distingué.</strong> Le meublé se loue 15-25% plus cher que le nu.
@@ -501,7 +509,7 @@ function openDrawer(type){
       </div>
       <div class="drawer-section"><div class="drawer-section-title">Comment ajuster</div>
         <div style="font-size:13px;color:var(--text2);line-height:1.75;">
-          Le champ loyer est <strong style="color:var(--text)">éditable manuellement</strong>. Pour un scénario plus optimiste (T2 refait, meublé, centre-ville), tu peux monter au niveau SeLoger. Pour la <strong style="color:var(--text)">rentabilité réelle sur 10-20 ans</strong>, garder la médiane officielle est plus fiable — c'est ce que fera aussi ton banquier.
+          Le champ loyer est <strong style="color:var(--text)">éditable manuellement</strong>. Pour un scénario plus optimiste (T2 refait, meublé, centre-ville), tu peux monter au niveau SeLoger. Pour la <strong style="color:var(--text)">rentabilité réelle sur 10-20 ans</strong>, garder la médiane officielle est plus fiable. C'est ce que fera aussi ton banquier.
         </div>
       </div>`;
   } else if(type==='marche'){

@@ -21,15 +21,15 @@ const OPT_BONUS = { parking_ext:0.03, garage:0.08, parking:0.05, balcon:0.03, ja
 
 // Quartiers détaillés de Lyon
 const LYON_QUARTIERS = [
-  {code:"Lyon 1er",nom:"Lyon 1er — Presqu'île / Terreaux",   prix_m2:5500,loyer_apt:20,loyer_msn:18,lat:45.7676,lon:4.8344,Tension:9.5,cp:"69001"},
-  {code:"Lyon 2e", nom:"Lyon 2e — Ainay / Bellecour",         prix_m2:5300,loyer_apt:22,loyer_msn:19,lat:45.7489,lon:4.8289,Tension:9.2,cp:"69002"},
-  {code:"Lyon 3e", nom:"Lyon 3e — Part-Dieu / Guillotière",   prix_m2:4700,loyer_apt:19,loyer_msn:17,lat:45.7554,lon:4.8548,Tension:9.0,cp:"69003"},
-  {code:"Lyon 4e", nom:"Lyon 4e — Croix-Rousse",              prix_m2:5600,loyer_apt:21,loyer_msn:18,lat:45.7786,lon:4.8267,Tension:9.6,cp:"69004"},
-  {code:"Lyon 5e", nom:"Lyon 5e — Vieux-Lyon / Saint-Just",   prix_m2:5100,loyer_apt:19,loyer_msn:17,lat:45.7612,lon:4.8185,Tension:9.0,cp:"69005"},
-  {code:"Lyon 6e", nom:"Lyon 6e — Tête d'Or / Brotteaux",     prix_m2:6500,loyer_apt:22,loyer_msn:20,lat:45.7718,lon:4.8530,Tension:9.8,cp:"69006"},
-  {code:"Lyon 7e", nom:"Lyon 7e — Gerland / Jean Macé",       prix_m2:4500,loyer_apt:19,loyer_msn:17,lat:45.7327,lon:4.8463,Tension:8.8,cp:"69007"},
-  {code:"Lyon 8e", nom:"Lyon 8e — Monplaisir / Mermoz",       prix_m2:4100,loyer_apt:16,loyer_msn:14,lat:45.7366,lon:4.8713,Tension:8.2,cp:"69008"},
-  {code:"Lyon 9e", nom:"Lyon 9e — Vaise / La Duchère",        prix_m2:3800,loyer_apt:15,loyer_msn:13,lat:45.7797,lon:4.7978,Tension:8.0,cp:"69009"},
+  {code:"Lyon 1er",nom:"Lyon 1er · Presqu'île / Terreaux",   prix_m2:5500,loyer_apt:20,loyer_msn:18,lat:45.7676,lon:4.8344,Tension:9.5,cp:"69001"},
+  {code:"Lyon 2e", nom:"Lyon 2e · Ainay / Bellecour",         prix_m2:5300,loyer_apt:22,loyer_msn:19,lat:45.7489,lon:4.8289,Tension:9.2,cp:"69002"},
+  {code:"Lyon 3e", nom:"Lyon 3e · Part-Dieu / Guillotière",   prix_m2:4700,loyer_apt:19,loyer_msn:17,lat:45.7554,lon:4.8548,Tension:9.0,cp:"69003"},
+  {code:"Lyon 4e", nom:"Lyon 4e · Croix-Rousse",              prix_m2:5600,loyer_apt:21,loyer_msn:18,lat:45.7786,lon:4.8267,Tension:9.6,cp:"69004"},
+  {code:"Lyon 5e", nom:"Lyon 5e · Vieux-Lyon / Saint-Just",   prix_m2:5100,loyer_apt:19,loyer_msn:17,lat:45.7612,lon:4.8185,Tension:9.0,cp:"69005"},
+  {code:"Lyon 6e", nom:"Lyon 6e · Tête d'Or / Brotteaux",     prix_m2:6500,loyer_apt:22,loyer_msn:20,lat:45.7718,lon:4.8530,Tension:9.8,cp:"69006"},
+  {code:"Lyon 7e", nom:"Lyon 7e · Gerland / Jean Macé",       prix_m2:4500,loyer_apt:19,loyer_msn:17,lat:45.7327,lon:4.8463,Tension:8.8,cp:"69007"},
+  {code:"Lyon 8e", nom:"Lyon 8e · Monplaisir / Mermoz",       prix_m2:4100,loyer_apt:16,loyer_msn:14,lat:45.7366,lon:4.8713,Tension:8.2,cp:"69008"},
+  {code:"Lyon 9e", nom:"Lyon 9e · Vaise / La Duchère",        prix_m2:3800,loyer_apt:15,loyer_msn:13,lat:45.7797,lon:4.7978,Tension:8.0,cp:"69009"},
 ];
 
 // Mapping code postal → quartier Lyon
@@ -171,7 +171,7 @@ function _populateDeptSelectFrom(villes) {
   depts.forEach(([code, nom]) => {
     const opt = document.createElement('option');
     opt.value = code;
-    opt.textContent = `${code} — ${nom}`;
+    opt.textContent = `${code} · ${nom}`;
     deptSel.appendChild(opt);
   });
 }

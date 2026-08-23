@@ -24,7 +24,7 @@ async function saveProjectToDB(projectData) {
 
   // Vérifie limite plan gratuit
   if (savedProjects.length >= APP_CONFIG.maxProjectsFree && currentProfile?.plan === 'free') {
-    showToast('Limite de 5 projets atteinte — passez en Pro', 'warn');
+    showToast('Limite de 5 projets atteinte. Passez en Pro', 'warn');
     return null;
   }
 
@@ -424,6 +424,12 @@ function loadProject(id) {
       // Equipements coches (Pro)
       if (Array.isArray(p.params.opts) && typeof activeOpts !== 'undefined') {
         activeOpts.clear();
+        // Décoche visuellement toutes les options avant de recocher celles du projet
+        document.querySelectorAll('.checkbox-item[id^="opt-"]').forEach(item => {
+          item.classList.remove('checked');
+          const cb = item.querySelector('input[type="checkbox"]');
+          if (cb) cb.checked = false;
+        });
         p.params.opts.forEach(name => {
           activeOpts.add(name);
           const cb = document.getElementById('cb-' + name);
@@ -431,6 +437,7 @@ function loadProject(id) {
           if (cb) cb.checked = true;
           if (item) item.classList.add('checked');
         });
+        if (typeof refreshOptsCount === 'function') refreshOptsCount();
       }
 
       // Toggles de cases a cocher des options Pro
@@ -464,7 +471,7 @@ function openSaveModal() {
   const ville = document.getElementById('simVille')?.value || '';
   const surf  = document.getElementById('simSurf')?.value || document.getElementById('simSurfS')?.value || '';
   const qCode = document.getElementById('simQuartier')?.value || '';
-  document.getElementById('saveProjectName').value = `${ville}${qCode ? ' ' + qCode : ''} — ${surf}m²`;
+  document.getElementById('saveProjectName').value = `${ville}${qCode ? ' ' + qCode : ''} · ${surf}m²`;
   document.getElementById('saveProjectNote').value = '';
   document.getElementById('saveModal').classList.add('open');
 }

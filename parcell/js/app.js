@@ -187,9 +187,13 @@ function renderSimulateurTab() {
           <div style="flex:1"><label>Pièces : <span id="pcsVal" class="range-val">2</span></label><input type="range" id="simPcs" min="1" max="6" value="2" style="margin-top:10px;" oninput="document.getElementById('pcsVal').textContent=this.value;updateSimLoyer()"></div>
         </div></div>
 
-        <div class="pro-section">
-          <div class="pro-section-title">Équipements & atouts</div>
-          <div class="checkbox-grid">
+        <details class="pro-section pro-collapsible" id="optsDetails">
+          <summary class="pro-section-summary">
+            <span class="pro-section-title" style="margin:0;">Équipements & atouts</span>
+            <span class="opts-count" id="optsCount"></span>
+            <span class="pro-chevron" aria-hidden="true">▾</span>
+          </summary>
+          <div class="checkbox-grid" style="margin-top:12px;">
             <label class="checkbox-item" id="opt-parking_ext" onclick="toggleOpt('parking_ext',this)"><input type="checkbox" id="cb-parking_ext" style="pointer-events:none;"> 🅿️ Place de parking / extérieur</label>
             <label class="checkbox-item" id="opt-garage" onclick="toggleOpt('garage',this)"><input type="checkbox" id="cb-garage" style="pointer-events:none;"> 🚗 Garage / Box fermé</label>
             <label class="checkbox-item" id="opt-balcon" onclick="toggleOpt('balcon',this)"><input type="checkbox" id="cb-balcon" style="pointer-events:none;"> 🌿 Balcon / Terrasse</label>
@@ -198,7 +202,7 @@ function renderSimulateurTab() {
             <label class="checkbox-item" id="opt-digicode" onclick="toggleOpt('digicode',this)"><input type="checkbox" id="cb-digicode" style="pointer-events:none;"> 🔒 Gardien / Digicode</label>
             <label class="checkbox-item" id="opt-renove" onclick="toggleOpt('renove',this)"><input type="checkbox" id="cb-renove" style="pointer-events:none;"> ✨ Récemment rénové</label>
           </div>
-        </div>
+        </details>
 
         <div class="divider"></div>
         <div class="input-block"><label>Prix d'achat net vendeur</label>
