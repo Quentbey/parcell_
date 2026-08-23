@@ -16,6 +16,40 @@ async function initApp() {
   calcSim();
   // Précharge les projets uniquement si connecté
   if (typeof currentUser !== 'undefined' && currentUser) loadProjects();
+
+  // Gère les paramètres d'URL (?auth=login, ?auth=signup, ?ville=Lyon)
+  handleAppUrlParams();
+}
+
+function handleAppUrlParams() {
+  try {
+    var qs = new URLSearchParams(window.location.search);
+    var authParam = qs.get('auth');
+    if (authParam && typeof showAuthModal === 'function') {
+      // Seulement si pas déjà connecté
+      if (typeof currentUser === 'undefined' || !currentUser) {
+        var mode = (authParam === 'signup') ? 'signup' : 'login';
+        showAuthModal(mode);
+      }
+      // Nettoie le param pour ne pas rouvrir la modal au refresh
+      qs.delete('auth');
+      var newSearch = qs.toString();
+      var newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
+      history.replaceState(null, '', newUrl);
+    }
+    // Pré-sélectionne une ville dans le simulateur (?ville=Lyon)
+    var villeParam = qs.get('ville');
+    if (villeParam) {
+      var sel = document.getElementById('simVille');
+      if (sel) {
+        var opt = Array.from(sel.options).find(function(o){ return o.value.toLowerCase() === villeParam.toLowerCase(); });
+        if (opt) {
+          sel.value = opt.value;
+          if (typeof onSimVilleChange === 'function') onSimVilleChange();
+        }
+      }
+    }
+  } catch(e) { console.warn('URL params error', e); }
 }
 
 // ── Injection des onglets ──
