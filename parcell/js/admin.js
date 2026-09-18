@@ -70,7 +70,7 @@ function renderAdminPanel() {
 
   panel.innerHTML = `
     <!-- Statistiques globales -->
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:28px;">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%, 150px), 1fr));gap:12px;margin-bottom:28px;">
       ${statCard(nbUsers, 'Utilisateurs', 'var(--text)')}
       ${statCard(nbProjects, 'Projets totaux', 'var(--teal)')}
       ${statCard('+' + recentProjects, 'Cette semaine', 'var(--gold)')}
@@ -160,7 +160,7 @@ function adminViewUserProjects(userId, email) {
       <div style="font-size:13px;color:var(--text2);"><strong style="color:var(--text);">${projects.length}</strong> projet${projects.length > 1 ? 's' : ''} de <strong style="color:var(--gold);">${_esc(email)}</strong></div>
     </div>
     ${projects.length === 0 ? '<div style="text-align:center;padding:48px;color:var(--text3);font-size:14px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);">Aucun projet sauvegarde pour cet utilisateur.</div>' : `
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:12px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%, 260px), 1fr));gap:12px;">
         ${projects.map(p => {
           const cf = parseFloat(p.cashflow) || 0;
           return `

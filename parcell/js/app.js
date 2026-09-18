@@ -110,7 +110,7 @@ function renderAnalyseTab() {
     <!-- Apercu : 3 villes en exemple -->
     <div style="margin-top:48px;">
       <div style="text-align:center;font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:0.12em;font-weight:700;margin-bottom:22px;">Aperçu de ce qui arrive</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%, 240px), 1fr));gap:14px;">
         ${exemples.map(card).join('')}
       </div>
     </div>
