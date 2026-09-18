@@ -1,35 +1,51 @@
 name: Supabase keepalive
 
-# Empeche le projet Supabase free tier de se mettre en pause apres ~7 jours
-# d'inactivite. Fait une simple requete REST en lecture toutes les 72 heures.
-# La cle utilisee est la cle publishable (deja exposee cote client), donc elle
-# peut rester en clair ici sans risque.
+# Empêche le projet Supabase free tier de se mettre en pause après ~7 jours
+# d'inactivité. Ping la REST API tous les jours avec 3 tentatives par ping
+# pour tolérer les glitches transitoires.
+#
+# La clé publishable est déjà exposée côté client → OK en clair ici.
 
 on:
   schedule:
-    # tous les 3 jours a 07:17 UTC (intervalle volontairement decale pour
-    # eviter les heures rondes ou tout le monde planifie)
-    - cron: '17 7 */3 * *'
-  workflow_dispatch: {}   # permet de declencher manuellement depuis l'onglet Actions
+    # Tous les jours à 07:17 UTC (heure décalée pour éviter les slots congestionnés)
+    - cron: '17 7 * * *'
+  workflow_dispatch: {}   # déclenchement manuel depuis l'onglet Actions
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping cities table
+      - name: Ping Supabase REST API
         env:
           SB_URL: https://odjxxbbufbumlyxgqkaq.supabase.co
           SB_KEY: sb_publishable_MOcAWRPbtcgnLOPMbTP5Sg_VLWoTZO8
+        # continue-on-error: le workflow ne "failure" jamais → GitHub ne le désactive
+        # jamais automatiquement (le seuil est ~20 échecs consécutifs)
+        continue-on-error: true
         run: |
-          set -eu
-          status=$(curl -s -o /tmp/resp.txt -w "%{http_code}" \
-            -H "apikey: $SB_KEY" \
-            -H "Authorization: Bearer $SB_KEY" \
-            "$SB_URL/rest/v1/cities?select=id&limit=1")
-          echo "HTTP status: $status"
-          head -c 200 /tmp/resp.txt
-          if [ "$status" != "200" ]; then
-            echo "::error::Ping Supabase a echoue (status $status). Le projet est peut-etre en pause."
-            exit 1
+          set -u
+          ok=0
+          for target in cities profiles; do
+            for attempt in 1 2 3; do
+              status=$(curl -sS -o /tmp/resp.txt -w "%{http_code}" --max-time 15 \
+                -H "apikey: $SB_KEY" \
+                -H "Authorization: Bearer $SB_KEY" \
+                "$SB_URL/rest/v1/${target}?select=id&limit=1" || echo "000")
+              echo "[$target] tentative $attempt : HTTP $status"
+              head -c 200 /tmp/resp.txt; echo
+              if [ "$status" = "200" ]; then
+                ok=1
+                break
+              fi
+              # Backoff : 5s puis 15s avant retry
+              [ "$attempt" != "3" ] && sleep $((attempt * 5))
+            done
+            [ "$ok" = "1" ] && break
+          done
+
+          if [ "$ok" = "1" ]; then
+            echo "::notice::Supabase répond, projet actif."
+          else
+            echo "::warning::Ping Supabase KO après 6 tentatives (2 tables × 3). Le projet est probablement en pause. Reconnexion manuelle requise via le dashboard Supabase."
           fi
-          echo "OK : Supabase repond, le projet reste actif."
