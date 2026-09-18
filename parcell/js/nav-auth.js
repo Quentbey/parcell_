@@ -42,6 +42,9 @@
       + '.nav-user-mini .menu a, .nav-user-mini .menu button{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;color:var(--text2,#c4cad6);font-size:13px;text-decoration:none;background:none;border:none;width:100%;cursor:pointer;text-align:left;font-family:inherit;transition:background .15s;}'
       + '.nav-user-mini .menu a:hover, .nav-user-mini .menu button:hover{background:rgba(255,255,255,0.05);color:var(--text,#e4e8f2);}'
       + '.nav-user-mini .menu .logout{color:#f87171;}'
+      // Lien "Se connecter" injecté dans le menu déroulant mobile
+      + '.nav-links .mobile-login-link{display:none;}'
+      + '@media(max-width:860px){.nav-links.open .mobile-login-link{display:block;margin-top:8px;padding-top:14px;border-top:1px solid var(--border,rgba(255,255,255,0.08));color:var(--gold,#c9a84c) !important;font-weight:600;}}'
       + '@media(max-width:520px){.nav-user-mini .name{display:none;}}';
     document.head.appendChild(s);
   }
@@ -81,6 +84,9 @@
 
     ensureStyles();
 
+    // Sauvegarde le burger existant pour le préserver
+    var burger = container.querySelector('.nav-burger');
+
     // Vide le container et remplace par l'avatar
     container.innerHTML = ''
       + '<div class="nav-user-mini" id="navUserMini">'
@@ -97,6 +103,9 @@
       + '  </div>'
       + '</div>';
 
+    // Réinsère le burger après l'avatar (pour garder la nav mobile accessible)
+    if (burger) container.appendChild(burger);
+
     // Ferme le menu au clic extérieur
     document.addEventListener('click', function(e){
       var el = document.getElementById('navUserMini');
@@ -104,8 +113,41 @@
     });
   }
 
+  function ensureBurger(session){
+    var nav = document.querySelector('.site-nav .site-nav-inner');
+    if (!nav) return;
+    var links = nav.querySelector('.nav-links');
+    var cta = nav.querySelector('.nav-cta');
+    if (!links || !cta) return;
+
+    // Injecte un lien "Se connecter" dans le menu mobile si non connecté
+    if (!session && !links.querySelector('.mobile-login-link')) {
+      var a = document.createElement('a');
+      a.href = '/app.html?auth=login';
+      a.className = 'mobile-login-link';
+      a.textContent = 'Se connecter';
+      links.appendChild(a);
+    }
+
+    // Injecte le burger si absent (typique sur guides/villes/articles)
+    if (!cta.querySelector('.nav-burger')) {
+      var btn = document.createElement('button');
+      btn.className = 'nav-burger';
+      btn.setAttribute('aria-label', 'Ouvrir le menu');
+      btn.setAttribute('aria-expanded', 'false');
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>';
+      btn.addEventListener('click', function(){
+        var opened = links.classList.toggle('open');
+        btn.setAttribute('aria-expanded', opened ? 'true' : 'false');
+      });
+      cta.appendChild(btn);
+    }
+  }
+
   function apply(){
+    ensureStyles();
     var session = readSession();
+    ensureBurger(session);
     if (!session) return; // Pas connecté : on garde la nav par défaut
     var cta = document.querySelector('.site-nav .nav-cta');
     if (!cta) return;
