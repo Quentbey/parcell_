@@ -143,10 +143,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
       <div class="kpi-row mini">
         <div class="kpi"><div class="k-label">Rendement brut</div><div class="k-val k-teal" id="mBrut">4,4 %</div></div>
-        <div class="kpi"><div class="k-label">Rendement net estimé</div><div class="k-val k-gold" id="mNet">3,2 %</div></div>
+        <div class="kpi"><div class="k-label">Rendement net estimé</div><div class="k-val k-gold" id="mNet">2,9 %</div></div>
         <div class="kpi"><div class="k-label">Loyers par an</div><div class="k-val" id="mAn">10 200 €</div></div>
       </div>
-      <a href="/app.html#simulateur" class="btn btn-primary sim-cta"><svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg> Simulation complète (crédit, cashflow, fiscalité)</a>
+      <a href="/app.html#simulateur" class="btn btn-primary sim-cta"><svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg> Simulation complète (crédit, charges, cashflow)</a>
     </div>
   </div>
 </section>
@@ -396,7 +396,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function pct(n){return n.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %';}
   function miniCalc(){
     var prix=parseFloat(mp.value)||0,loyer=parseFloat(ml.value)||0,an=loyer*12;
-    var brut=prix>0?an/prix*100:0, net=brut*0.72; // ~28% de charges/taxe/vacance (estimation)
+    // Mêmes hypothèses par défaut que le simulateur : notaire 7,5 %, 5 000 € de travaux,
+    // 1 mois de vacance, taxe foncière ≈ 1 mois de loyer, PNO 150 €/an, entretien 0,5 %/an.
+    var brut=prix>0?an/prix*100:0, cout=prix*1.075+5000,
+        net=prix>0?(loyer*11-(loyer+150+prix*0.005))/cout*100:0;
     document.getElementById('mBrut').textContent=pct(brut);
     document.getElementById('mNet').textContent=pct(net);
     document.getElementById('mAn').textContent=eur(an);
@@ -404,11 +407,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   if(mp&&ml){mp.addEventListener('input',miniCalc);ml.addEventListener('input',miniCalc);miniCalc();}
 
   // ── Villes exemples : rotation toutes les 5s ──
+  // Rendement brut médian (loyer m² × 12 / prix m²) : base Yrow (DVF + Carte des Loyers)
+  // et repères par arrondissement de la page Lyon. À tenir aligné avec ces sources.
   var CITY_POOL=[
-    {n:'Saint-Étienne',y:8.1},{n:'Lyon 6e',y:3.7},{n:'Lyon 8e',y:4.4},
-    {n:'Bordeaux',y:4.5},{n:'Lille',y:5.8},{n:'Marseille',y:5.5},
-    {n:'Toulouse',y:5.0},{n:'Nantes',y:4.8},{n:'Strasbourg',y:5.2},
-    {n:'Montpellier',y:5.0},{n:'Rennes',y:4.6},{n:'Nice',y:4.2}
+    {n:'Saint-Étienne',y:8.6},{n:'Lyon 6e',y:4.1},{n:'Lyon 8e',y:4.7},
+    {n:'Bordeaux',y:4.3},{n:'Lille',y:4.5},{n:'Montpellier',y:5.2},
+    {n:'Toulouse',y:4.9},{n:'Nantes',y:4.9},{n:'Lyon 3e',y:4.9},
+    {n:'Rennes',y:4.6},{n:'Nice',y:4.8}
   ];
   var cityIdx=0;
   function renderCityBars(){

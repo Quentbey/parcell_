@@ -37,7 +37,7 @@ const CP_TO_QUARTIER = {};
 LYON_QUARTIERS.forEach(q => { CP_TO_QUARTIER[q.cp] = q.code; });
 
 // État simulateur
-let simType = 'Apt', simMeuble = true, simMode = 'simple';
+let simType = 'Apt', simMeuble = true, simMode = 'pro';
 let simColoc = { on: false, n: 2 };   // Colocation : actif + nombre de colocataires
 // Cases à cocher des paramètres Pro (toutes activées par défaut)
 let simOptions = { pret: true, duree: true, taux: true, assurance: true, vacance: true };
@@ -411,14 +411,16 @@ function onSimVilleInput() {
   const input = document.getElementById('simVille');
   const dd = document.getElementById('simVilleDropdown');
   if (!input || !dd) return;
-  const q = input.value.trim().toLowerCase();
+  const q = _normVille(input.value);
   let matches;
   if (!q) {
-    matches = VILLES.slice(0, 15);
+    matches = [...VILLES].sort((a, b) => b['2022'] - a['2022']).slice(0, 15);
   } else {
-    matches = VILLES.filter(v => v.Ville.toLowerCase().startsWith(q)).slice(0, 30);
+    // Insensible aux accents, tirets et majuscules ; les plus grandes villes d'abord
+    const byPop = (a, b) => b['2022'] - a['2022'];
+    matches = VILLES.filter(v => _normVille(v.Ville).startsWith(q)).sort(byPop).slice(0, 30);
     if (matches.length < 5) {
-      const extra = VILLES.filter(v => !v.Ville.toLowerCase().startsWith(q) && v.Ville.toLowerCase().includes(q)).slice(0, 30 - matches.length);
+      const extra = VILLES.filter(v => !_normVille(v.Ville).startsWith(q) && _normVille(v.Ville).includes(q)).sort(byPop).slice(0, 30 - matches.length);
       matches = matches.concat(extra);
     }
   }
@@ -434,16 +436,30 @@ function onSimVilleInput() {
     return;
   }
   dd.innerHTML = customRow + matches.map(v => `<div style="padding:9px 13px;cursor:pointer;font-size:13px;color:var(--text);border-bottom:1px solid var(--border);"
-      onmousedown="pickSimVille('${v.Ville.replace(/'/g, "\\'")}')"
+      onmousedown="pickSimVille('${v.Ville.replace(/'/g, "\\'")}','${v.insee}')"
       onmouseover="this.style.background='var(--bg3)'"
       onmouseout="this.style.background=''"
-    >${v.Ville} <span style="color:var(--text3);font-size:11px;">${v.Dept}</span></div>`).join('');
+    >${v.Ville} <span style="color:var(--text3);font-size:11px;">${v.Département || ''} (${v.Dept})</span></div>`).join('');
   dd.style.display = 'block';
 }
 
-function pickSimVille(name) {
+// Commune choisie dans la liste (code INSEE) : distingue les homonymes (Saint-Denis 93 / 974…)
+let simVilleInsee = null;
+function _normVille(t) {
+  return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[-'’]/g, ' ').replace(/\s+/g, ' ').toLowerCase().trim();
+}
+// Ville courante du simulateur
+function simCity() {
+  const name = document.getElementById('simVille')?.value || '';
+  return (simVilleInsee && VILLES.find(c => c.insee === simVilleInsee && c.Ville === name))
+      || VILLES.find(c => c.Ville === name)
+      || VILLES.find(c => _normVille(c.Ville) === _normVille(name));
+}
+
+function pickSimVille(name, insee) {
   const input = document.getElementById('simVille');
   if (input) input.value = name;
+  simVilleInsee = insee || null;
   hideSimVilleDropdown();
   if (typeof onSimVilleChange === 'function') onSimVilleChange();
 }

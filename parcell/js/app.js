@@ -6,6 +6,7 @@
 async function initApp() {
   // Injecte les onglets dans le DOM
   renderTabContents();
+  if (typeof restoreSections === 'function') restoreSections();
   // Charge les villes depuis Supabase (remplace data.js statique)
   await loadCitiesFromSupabase();
   // Initialise les composants qui dépendent des villes
@@ -41,12 +42,16 @@ function handleAppUrlParams() {
       var newUrl = window.location.pathname + (newSearch ? '?' + newSearch : '') + window.location.hash;
       history.replaceState(null, '', newUrl);
     }
+    // Projet partagé (?share=<token>)
+    var shareParam = qs.get('share');
+    if (shareParam && typeof loadSharedProject === 'function') { loadSharedProject(shareParam); return; }
     // Pré-sélectionne une ville dans le simulateur (?ville=Lyon)
     var villeParam = qs.get('ville');
     if (villeParam) {
       var norm = function(t){ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); };
-      var city = VILLES.find(function(v){ return norm(v.Ville) === norm(villeParam); });
-      if (city && typeof pickSimVille === 'function') pickSimVille(city.Ville);
+      var city = VILLES.filter(function(v){ return norm(v.Ville) === norm(villeParam); })
+                       .sort(function(a, b){ return b['2022'] - a['2022']; })[0];
+      if (city && typeof pickSimVille === 'function') pickSimVille(city.Ville, city.insee);
     }
   } catch(e) { console.warn('URL params error', e); }
 }
@@ -65,9 +70,10 @@ function renderTabContents() {
 // ══════════════════════════════════════════
 function renderAnalyseTab() {
   const exemples = [
-    { ville:'Lyon', dept:'Rhône (69)', pop:'522 000 hab.', prix:'5 100', loyer:'17,5', tension:'9,2', rdt:'4,1' },
-    { ville:'Saint-Étienne', dept:'Loire (42)', pop:'170 000 hab.', prix:'1 200', loyer:'9,8', tension:'7,5', rdt:'8,1' },
-    { ville:'Bordeaux', dept:'Gironde (33)', pop:'259 000 hab.', prix:'4 800', loyer:'15,0', tension:'8,8', rdt:'4,5' },
+    // Lyon : chiffres de la page /villes/lyon/ ; autres : base Yrow (DVF + Carte des Loyers)
+    { ville:'Lyon', dept:'Rhône (69)', pop:'519 000 hab.', prix:'4 900', loyer:'19', tension:'9,2', rdt:'4,6' },
+    { ville:'Saint-Étienne', dept:'Loire (42)', pop:'173 000 hab.', prix:'1 350', loyer:'9,6', tension:'6', rdt:'8,6' },
+    { ville:'Bordeaux', dept:'Gironde (33)', pop:'268 000 hab.', prix:'4 420', loyer:'15,7', tension:'7', rdt:'4,3' },
   ];
   const card = e => `<div style="background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius);padding:20px;">
     <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:17px;margin-bottom:3px;">${e.ville}</div>
@@ -123,14 +129,6 @@ function renderAnalyseTab() {
 function renderSimulateurTab() {
   return `
 <div id="tab-simulateur" class="tab-content">
-  <div style="display:flex;justify-content:center;padding:16px 0 4px;">
-    <div class="mode-switcher">
-      <button class="mode-btn active simple" id="modeSimple" onclick="setMode('simple')">✨ Simple</button>
-      <button class="mode-btn pro" id="modePro" onclick="setMode('pro')">⚙️ Pro</button>
-    </div>
-  </div>
-  <p style="text-align:center;font-size:12px;color:var(--text3);margin-bottom:16px;" id="modeDesc">Estimez rapidement la rentabilité d'un bien en quelques clics.</p>
-
   <div style="display:flex;justify-content:center;margin-bottom:18px;">
     <button class="import-btn" disabled title="Fonctionnalité IA en cours de développement" style="opacity:0.6;cursor:not-allowed;display:inline-flex;align-items:center;gap:8px;">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
@@ -141,7 +139,7 @@ function renderSimulateurTab() {
   <div class="section"><div class="sim-layout">
     <div class="card" style="padding:24px;">
       <div class="input-block" style="position:relative;"><label>Ville</label>
-        <input class="field" type="text" id="simVille" autocomplete="off" placeholder="Tapez une ville (ex: Lyon)" oninput="onSimVilleInput()" onfocus="onSimVilleInput()" onblur="hideSimVilleDropdown()">
+        <input class="field" type="text" id="simVille" autocomplete="off" placeholder="Tapez une ville (ex: Lyon)" oninput="simVilleInsee=null;onSimVilleInput()" onfocus="onSimVilleInput()" onblur="hideSimVilleDropdown()">
         <div id="simVilleDropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;right:0;max-height:260px;overflow-y:auto;background:var(--card2);border:1px solid var(--border2);border-radius:var(--radius-sm);z-index:30;box-shadow:0 8px 24px rgba(0,0,0,0.4);"></div>
       </div>
 
@@ -169,93 +167,102 @@ function renderSimulateurTab() {
         </div>
       </div>
 
-      <div id="blockSimple">
-        <div class="input-block"><label>Surface estimée (m²)</label>
-          <input class="field" type="number" id="simSurfS" value="45" min="9" oninput="syncSurf(this);updateSimLoyer()">
-        </div>
-        <div class="input-block"><label>Budget d'achat estimé (€)</label>
-          <div class="prix-field-wrap">
-            <input type="number" id="simPrixS" class="prix-field-inline" value="150000" step="5000" placeholder="Ex : 150 000" oninput="syncPrix(this);autoNotaire();calcSim()">
-            <span class="prix-suffix-inline">€</span>
-          </div>
-        </div>
-        <div class="input-block"><label>Apport personnel (€)</label>
-          <div class="field-prefix-wrap"><span class="field-prefix">€</span>
-            <input class="field" type="number" id="simApportS" value="20000" oninput="syncField('simApport','simApportS');calcSim()">
-          </div>
+      <div class="input-block"><div class="input-row">
+        <div style="flex:1"><label>Surface (m²)</label><input class="field" type="number" id="simSurf" value="45" min="9" oninput="updateSimLoyer()"></div>
+        <div style="flex:1"><label>Pièces : <span id="pcsVal" class="range-val">2</span></label><input type="range" id="simPcs" min="1" max="6" value="2" style="margin-top:10px;" oninput="document.getElementById('pcsVal').textContent=this.value;updateSimLoyer()"></div>
+      </div></div>
+      <div class="input-block"><label>Prix d'achat net vendeur</label>
+        <div class="prix-field-wrap">
+          <input type="number" id="simPrix" class="prix-field-inline" value="150000" step="1000" placeholder="Ex : 150 000" oninput="this.dataset.touched=1;autoNotaire();calcSim()">
+          <span class="prix-suffix-inline">€</span>
         </div>
       </div>
+      <p class="sim-sec-intro">Les sections ci-dessous sont pré-remplies avec des valeurs réalistes. Ouvrez celles que vous voulez ajuster.</p>
 
-      <div id="blockPro" style="display:none;">
-        <div class="input-block"><label>Location meublée</label>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div class="toggle-group" style="flex:1">
-              <button class="toggle-btn" id="btnNonMeuble" onclick="setMeuble(false)">🪑 Non meublé</button>
-              <button class="toggle-btn active" id="btnMeuble" onclick="setMeuble(true)">🛋️ Meublé</button>
+      <details class="pro-section pro-collapsible sim-sec" id="sec-financement" ontoggle="rememberSection(this)">
+        <summary class="pro-section-summary"><span class="pro-section-title" style="margin:0;">Financement</span><span class="sec-hint" id="hint-financement"></span><span class="pro-chevron" aria-hidden="true">▾</span></summary>
+        <div class="sim-sec-body">
+          <div class="input-block"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="opt-pret" checked onchange="setSimOption('pret', this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--gold);"><span>Financer par un prêt bancaire</span></label></div>
+          <div class="input-block"><label>Apport personnel (€)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simApport" value="20000" min="0" oninput="calcSim()"></div></div>
+          <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-duree" checked onchange="setSimOption('duree', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Durée du prêt : <span id="dureeVal" class="range-val">20 ans</span></span></label><input type="range" id="simDuree" min="10" max="25" value="20" oninput="document.getElementById('dureeVal').textContent=this.value+' ans';calcSim()"></div>
+          <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-taux" checked onchange="setSimOption('taux', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Taux d'intérêt : <span id="tauxVal" class="range-val">3.6%</span></span></label><input type="range" id="simTaux" min="1" max="7" step="0.1" value="3.6" oninput="document.getElementById('tauxVal').textContent=parseFloat(this.value).toFixed(1)+'%';calcSim()"></div>
+          <div class="input-block" style="margin-bottom:0;"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-assurance" checked onchange="setSimOption('assurance', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Assurance emprunteur : <span id="assurVal" class="range-val">0.20%</span></span></label><input type="range" id="simAssur" min="0.10" max="0.50" step="0.01" value="0.20" oninput="document.getElementById('assurVal').textContent=parseFloat(this.value).toFixed(2)+'%';calcSim()"></div>
+        </div>
+      </details>
+
+      <details class="pro-section pro-collapsible sim-sec" id="sec-achat" ontoggle="rememberSection(this)">
+        <summary class="pro-section-summary"><span class="pro-section-title" style="margin:0;">Frais d'achat</span><span class="sec-hint" id="hint-achat"></span><span class="pro-chevron" aria-hidden="true">▾</span></summary>
+        <div class="sim-sec-body">
+          <div class="input-block"><div class="input-row">
+            <div style="flex:1"><label>Frais de notaire (€)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simNotaire" value="11250" min="0" oninput="this.dataset.touched=1;calcSim()"></div><div class="field-help">Environ 7,5 % dans l'ancien, 2 à 3 % dans le neuf.</div></div>
+            <div style="flex:1"><label>Travaux / meubles (€)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simTravaux" value="5000" min="0" oninput="calcSim()"></div></div>
+          </div></div>
+        </div>
+      </details>
+
+      <details class="pro-section pro-collapsible sim-sec" id="sec-location" ontoggle="rememberSection(this)">
+        <summary class="pro-section-summary"><span class="pro-section-title" style="margin:0;">Location</span><span class="sec-hint" id="hint-location"></span><span class="pro-chevron" aria-hidden="true">▾</span></summary>
+        <div class="sim-sec-body">
+          <div class="input-block"><label>Location meublée</label>
+            <div style="display:flex;align-items:center;gap:10px;">
+              <div class="toggle-group" style="flex:1">
+                <button class="toggle-btn" id="btnNonMeuble" onclick="setMeuble(false)">🪑 Non meublé</button>
+                <button class="toggle-btn active" id="btnMeuble" onclick="setMeuble(true)">🛋️ Meublé</button>
+              </div>
+              <div style="display:flex;align-items:center;gap:4px;min-width:75px;">
+                <span style="font-size:11px;color:var(--text3);">+</span>
+                <input type="number" id="meublePct" class="field" style="width:56px;padding:5px 7px;" value="15" min="0" max="50" oninput="updateSimLoyer()">
+                <span style="font-size:11px;color:var(--text3);">%</span>
+              </div>
             </div>
-            <div style="display:flex;align-items:center;gap:4px;min-width:75px;">
-              <span style="font-size:11px;color:var(--text3);">+</span>
-              <input type="number" id="meublePct" class="field" style="width:50px;padding:5px 7px;font-size:13px;" value="15" min="0" max="50" oninput="updateSimLoyer()">
-              <span style="font-size:11px;color:var(--text3);">%</span>
+          </div>
+          <div class="input-block"><label>Colocation <span style="color:var(--text3);font-size:11px;">· loyer ajusté automatiquement</span></label>
+            <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+              <div class="toggle-group" style="flex:1;min-width:220px;">
+                <button class="toggle-btn active" id="btnColocOff" onclick="setColoc(false)">🛏️ Location classique</button>
+                <button class="toggle-btn" id="btnColocOn" onclick="setColoc(true)">👥 Colocation</button>
+              </div>
+              <div id="colocCountWrap" style="display:none;align-items:center;gap:6px;">
+                <span style="font-size:11px;color:var(--text3);">Colocs :</span>
+                <select id="simColocN" class="field" style="width:64px;padding:5px 7px;" onchange="setColocN(this.value)">
+                  <option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5+</option>
+                </select>
+                <span id="colocBonusInfo" style="font-size:11px;color:var(--teal);font-weight:600;"></span>
+              </div>
+            </div>
+          </div>
+          <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-vacance" checked onchange="setSimOption('vacance', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Vacance locative : <span id="vacanceVal" class="range-val">1 mois/an</span></span></label><input type="range" id="simVacance" min="0" max="3" step="0.5" value="1" oninput="document.getElementById('vacanceVal').textContent=this.value+' mois/an';calcSim()"></div>
+          <div class="input-block" style="margin-bottom:0;"><label>Équipements et atouts <span class="opts-count" id="optsCount"></span></label>
+            <div class="checkbox-grid" style="margin-top:6px;">
+              <label class="checkbox-item" id="opt-parking_ext" onclick="toggleOpt('parking_ext',this)"><input type="checkbox" id="cb-parking_ext" style="pointer-events:none;"> 🅿️ Place de parking / extérieur</label>
+              <label class="checkbox-item" id="opt-garage" onclick="toggleOpt('garage',this)"><input type="checkbox" id="cb-garage" style="pointer-events:none;"> 🚗 Garage / Box fermé</label>
+              <label class="checkbox-item" id="opt-balcon" onclick="toggleOpt('balcon',this)"><input type="checkbox" id="cb-balcon" style="pointer-events:none;"> 🌿 Balcon / Terrasse</label>
+              <label class="checkbox-item" id="opt-jardin" onclick="toggleOpt('jardin',this)"><input type="checkbox" id="cb-jardin" style="pointer-events:none;"> 🌳 Jardin privatif</label>
+              <label class="checkbox-item" id="opt-cave" onclick="toggleOpt('cave',this)"><input type="checkbox" id="cb-cave" style="pointer-events:none;"> 📦 Cave / Cellier</label>
+              <label class="checkbox-item" id="opt-digicode" onclick="toggleOpt('digicode',this)"><input type="checkbox" id="cb-digicode" style="pointer-events:none;"> 🔒 Gardien / Digicode</label>
+              <label class="checkbox-item" id="opt-renove" onclick="toggleOpt('renove',this)"><input type="checkbox" id="cb-renove" style="pointer-events:none;"> ✨ Récemment rénové</label>
             </div>
           </div>
         </div>
-        <div class="input-block"><label>Colocation <span style="color:var(--text3);font-size:11px;">· loyer ajusté automatiquement</span></label>
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-            <div class="toggle-group" style="flex:1;min-width:220px;">
-              <button class="toggle-btn active" id="btnColocOff" onclick="setColoc(false)">🛏️ Location classique</button>
-              <button class="toggle-btn" id="btnColocOn" onclick="setColoc(true)">👥 Colocation</button>
-            </div>
-            <div id="colocCountWrap" style="display:none;align-items:center;gap:6px;">
-              <span style="font-size:11px;color:var(--text3);">Colocs :</span>
-              <select id="simColocN" class="field" style="width:64px;padding:5px 7px;font-size:13px;" onchange="setColocN(this.value)">
-                <option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5+</option>
-              </select>
-              <span id="colocBonusInfo" style="font-size:11px;color:var(--teal);font-weight:600;"></span>
-            </div>
+      </details>
+
+      <details class="pro-section pro-collapsible sim-sec" id="sec-charges" ontoggle="rememberSection(this)">
+        <summary class="pro-section-summary"><span class="pro-section-title" style="margin:0;">Charges et taxes</span><span class="sec-hint" id="hint-charges"></span><span class="pro-chevron" aria-hidden="true">▾</span></summary>
+        <div class="sim-sec-body">
+          <div class="input-block"><div class="input-row">
+            <div style="flex:1"><label>Taxe foncière (€/an)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simTaxeFonciere" value="700" min="0" oninput="this.dataset.touched=1;calcSim()"></div><div class="field-help">Estimée à un mois de loyer. Reprenez le montant de l'annonce.</div></div>
+            <div style="flex:1"><label>Copro non récupérable (€/mois)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simCopro" value="20" min="0" data-prev="0" oninput="this.dataset.touched=1;onSimCoproChange()"></div><div class="field-help">Part des charges que le locataire ne rembourse pas.</div></div>
+          </div></div>
+          <div class="input-block"><div class="input-row">
+            <div style="flex:1"><label>Assurance PNO (€/an)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simPno" value="150" min="0" oninput="calcSim()"></div></div>
+            <div style="flex:1"><label>Entretien et imprévus (€/an)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simEntretien" value="750" min="0" oninput="this.dataset.touched=1;calcSim()"></div></div>
+          </div></div>
+          <div class="input-block" style="margin-bottom:0;"><label>Gestion locative (% des loyers)</label>
+            <div class="field-prefix-wrap"><span class="field-prefix">%</span><input class="field" type="number" id="simGestion" value="0" min="0" max="15" step="0.5" oninput="calcSim()"></div>
+            <div class="field-help">0 % si vous gérez vous-même, 6 à 8 % avec une agence.</div>
           </div>
         </div>
-        <div class="input-block"><div class="input-row">
-          <div style="flex:1"><label>Surface (m²)</label><input class="field" type="number" id="simSurf" value="45" min="9" oninput="syncSurf(this);updateSimLoyer()"></div>
-          <div style="flex:1"><label>Pièces : <span id="pcsVal" class="range-val">2</span></label><input type="range" id="simPcs" min="1" max="6" value="2" style="margin-top:10px;" oninput="document.getElementById('pcsVal').textContent=this.value;updateSimLoyer()"></div>
-        </div></div>
-
-        <details class="pro-section pro-collapsible" id="optsDetails">
-          <summary class="pro-section-summary">
-            <span class="pro-section-title" style="margin:0;">Équipements & atouts</span>
-            <span class="opts-count" id="optsCount"></span>
-            <span class="pro-chevron" aria-hidden="true">▾</span>
-          </summary>
-          <div class="checkbox-grid" style="margin-top:12px;">
-            <label class="checkbox-item" id="opt-parking_ext" onclick="toggleOpt('parking_ext',this)"><input type="checkbox" id="cb-parking_ext" style="pointer-events:none;"> 🅿️ Place de parking / extérieur</label>
-            <label class="checkbox-item" id="opt-garage" onclick="toggleOpt('garage',this)"><input type="checkbox" id="cb-garage" style="pointer-events:none;"> 🚗 Garage / Box fermé</label>
-            <label class="checkbox-item" id="opt-balcon" onclick="toggleOpt('balcon',this)"><input type="checkbox" id="cb-balcon" style="pointer-events:none;"> 🌿 Balcon / Terrasse</label>
-            <label class="checkbox-item" id="opt-jardin" onclick="toggleOpt('jardin',this)"><input type="checkbox" id="cb-jardin" style="pointer-events:none;"> 🌳 Jardin privatif</label>
-            <label class="checkbox-item" id="opt-cave" onclick="toggleOpt('cave',this)"><input type="checkbox" id="cb-cave" style="pointer-events:none;"> 📦 Cave / Cellier</label>
-            <label class="checkbox-item" id="opt-digicode" onclick="toggleOpt('digicode',this)"><input type="checkbox" id="cb-digicode" style="pointer-events:none;"> 🔒 Gardien / Digicode</label>
-            <label class="checkbox-item" id="opt-renove" onclick="toggleOpt('renove',this)"><input type="checkbox" id="cb-renove" style="pointer-events:none;"> ✨ Récemment rénové</label>
-          </div>
-        </details>
-
-        <div class="divider"></div>
-        <div class="input-block"><label>Prix d'achat net vendeur</label>
-          <div class="prix-field-wrap">
-            <input type="number" id="simPrix" class="prix-field-inline" value="150000" step="1000" placeholder="Ex : 150 000" oninput="syncPrix(this);autoNotaire();calcSim()">
-            <span class="prix-suffix-inline">€</span>
-          </div>
-        </div>
-        <div class="input-block"><div class="input-row">
-          <div style="flex:1"><label>Frais de notaire (€)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simNotaire" value="11250" oninput="calcSim()"></div></div>
-          <div style="flex:1"><label>Travaux / Meubles (€)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simTravaux" value="10000" oninput="calcSim()"></div></div>
-        </div></div>
-        <div class="input-block"><label style="display:flex;align-items:center;gap:8px;cursor:pointer;"><input type="checkbox" id="opt-pret" checked onchange="setSimOption('pret', this.checked)" style="width:16px;height:16px;cursor:pointer;accent-color:var(--gold);"><span>Financer par un prêt bancaire</span></label></div>
-        <div class="input-block"><label>Apport personnel (€)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simApport" value="20000" oninput="syncField('simApportS','simApport');calcSim()"></div></div>
-        <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-duree" checked onchange="setSimOption('duree', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Durée du prêt : <span id="dureeVal" class="range-val">20 ans</span></span></label><input type="range" id="simDuree" min="10" max="25" value="20" oninput="document.getElementById('dureeVal').textContent=this.value+' ans';calcSim()"></div>
-        <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-taux" checked onchange="setSimOption('taux', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Taux d'intérêt : <span id="tauxVal" class="range-val">3.6%</span></span></label><input type="range" id="simTaux" min="1" max="7" step="0.1" value="3.6" oninput="document.getElementById('tauxVal').textContent=parseFloat(this.value).toFixed(1)+'%';calcSim()"></div>
-        <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-assurance" checked onchange="setSimOption('assurance', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Assurance emprunteur : <span id="assurVal" class="range-val">0.20%</span></span></label><input type="range" id="simAssur" min="0.10" max="0.50" step="0.01" value="0.20" oninput="document.getElementById('assurVal').textContent=parseFloat(this.value).toFixed(2)+'%';calcSim()"></div>
-        <div class="input-block"><label style="display:flex;align-items:center;gap:8px;"><input type="checkbox" id="opt-vacance" checked onchange="setSimOption('vacance', this.checked)" style="width:14px;height:14px;cursor:pointer;accent-color:var(--gold);"><span>Vacance locative : <span id="vacanceVal" class="range-val">1 mois/an</span></span></label><input type="range" id="simVacance" min="0" max="3" step="0.5" value="1" oninput="document.getElementById('vacanceVal').textContent=this.value+' mois/an';calcSim()"></div>
-        <div class="input-block"><label>Charges copro (€/mois)</label><div class="field-prefix-wrap"><span class="field-prefix">€</span><input class="field" type="number" id="simCopro" value="0" data-prev="0" oninput="onSimCoproChange()"></div></div>
-      </div>
+      </details>
     </div>
 
     <div class="results-panel">
@@ -276,13 +283,13 @@ function renderSimulateurTab() {
         <div><input class="loyer-kpi-input" type="number" id="simLoyer" value="680" oninput="calcSim()"><div style="text-align:center;font-size:11px;color:var(--text3);margin-top:3px;">€/mois</div></div>
       </div>
       <div class="kpi-grid-2">
-        <div class="sim-kpi"><div class="detail-badge" onclick="openDrawer('rentabilite')">ℹ</div><div class="sim-kpi-label">Renta. Brute</div><div class="sim-kpi-value" id="rentBrute" style="color:var(--teal)">—</div><div class="sim-kpi-sub">Loyers / coût</div></div>
-        <div class="sim-kpi"><div class="detail-badge" onclick="openDrawer('rentabilite')">ℹ</div><div class="sim-kpi-label">Renta. Nette</div><div class="sim-kpi-value" id="rentNette" style="color:var(--gold)">—</div><div class="sim-kpi-sub">Après charges</div></div>
+        <div class="sim-kpi"><div class="detail-badge" onclick="openDrawer('rentabilite')">ℹ</div><div class="sim-kpi-label">Renta. Brute</div><div class="sim-kpi-value" id="rentBrute" style="color:var(--teal)">—</div><div class="sim-kpi-sub">Loyers / prix d'achat</div></div>
+        <div class="sim-kpi"><div class="detail-badge" onclick="openDrawer('rentabilite')">ℹ</div><div class="sim-kpi-label">Renta. Nette</div><div class="sim-kpi-value" id="rentNette" style="color:var(--gold)">—</div><div class="sim-kpi-sub">Après charges et taxe foncière</div></div>
         <div class="sim-kpi"><div class="detail-badge" onclick="openDrawer('credit')">ℹ</div><div class="sim-kpi-label">Mensualité</div><div class="sim-kpi-value" id="mensualite">—</div><div class="sim-kpi-sub">Crédit</div></div>
         <div class="sim-kpi"><div class="detail-badge" onclick="openDrawer('credit')">ℹ</div><div class="sim-kpi-label">Assurance</div><div class="sim-kpi-value" id="assurMens">—</div><div class="sim-kpi-sub">/mois</div></div>
       </div>
       <div class="cashflow-indicator" id="cashflowBox">
-        <div><div class="cashflow-label">Cashflow net mensuel</div><div style="font-size:11px;color:var(--text3);margin-top:1px;">Loyer − crédit − assurance − charges</div></div>
+        <div><div class="cashflow-label">Cashflow net mensuel</div><div style="font-size:11px;color:var(--text3);margin-top:1px;">Loyer − crédit − assurance − charges, avant impôts</div></div>
         <div style="display:flex;align-items:center;gap:8px;">
           <div class="cashflow-val" id="cashflowVal">—</div>
           <div class="detail-badge" style="position:static;flex-shrink:0;" onclick="openDrawer('cashflow')">📈</div>
