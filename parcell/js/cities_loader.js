@@ -70,12 +70,20 @@ async function loadCitiesFromSupabase() {
     // Utilise fetch() directement pour éviter les blocages du SDK avec les clés sb_publishable_*
     const SUPA_URL = supabaseClient.supabaseUrl;
     const SUPA_KEY = supabaseClient.supabaseKey;
-    const resp = await fetch(
-      `${SUPA_URL}/rest/v1/cities?select=*&actif=eq.true&order=nom.asc`,
-      { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}` } }
-    );
-    if (!resp.ok) throw new Error(`Supabase HTTP ${resp.status}`);
-    const data = await resp.json();
+    // L'API renvoie au plus 1000 lignes par requête : on pagine via l'en-tête Range,
+    // sinon toutes les villes après "N" (Paris, Toulouse, Rennes…) disparaissent.
+    const PAGE = 1000;
+    const data = [];
+    for (let from = 0; ; from += PAGE) {
+      const resp = await fetch(
+        `${SUPA_URL}/rest/v1/cities?select=*&actif=eq.true&order=nom.asc,code_insee.asc`,
+        { headers: { 'apikey': SUPA_KEY, 'Authorization': `Bearer ${SUPA_KEY}`, 'Range-Unit': 'items', 'Range': `${from}-${from + PAGE - 1}` } }
+      );
+      if (!resp.ok) throw new Error(`Supabase HTTP ${resp.status}`);
+      const page = await resp.json();
+      data.push(...page);
+      if (page.length < PAGE) break;
+    }
 
     VILLES = (data || []).map(c => ({
       // Identifiants

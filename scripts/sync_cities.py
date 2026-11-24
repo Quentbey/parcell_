@@ -202,6 +202,18 @@ def fetch_loyers_map() -> Dict[str, dict]:
     if msn_url:
         parse_loyers(msn_url, "loyer_m2_msn")
 
+    # Paris / Lyon / Marseille : la Carte des Loyers ne publie que les arrondissements.
+    # On renseigne la commune-mère avec la moyenne de ses arrondissements.
+    prefixes = {"75056": "751", "69123": "6938", "13055": "132"}
+    for meta_insee, prefix in prefixes.items():
+        for key in ("loyer_m2_apt", "loyer_m2_msn"):
+            if loyers.get(meta_insee, {}).get(key):
+                continue
+            vals = [loyers[a][key] for a in ARDT_INSEE
+                    if a.startswith(prefix) and loyers.get(a, {}).get(key)]
+            if vals:
+                loyers.setdefault(meta_insee, {})[key] = round(sum(vals) / len(vals), 2)
+
     return loyers
 
 

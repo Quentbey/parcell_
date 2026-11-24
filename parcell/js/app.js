@@ -9,7 +9,11 @@ async function initApp() {
   // Charge les villes depuis Supabase (remplace data.js statique)
   await loadCitiesFromSupabase();
   // Initialise les composants qui dépendent des villes
-  renderAll();
+  // L'onglet Analyse est un placeholder "bientôt disponible" : ses fonctions de rendu
+  // visent des éléments absents et lèveraient une erreur qui bloquerait toute la suite.
+  if (document.getElementById('kpiCards')) {
+    try { renderAll(); } catch (e) { console.warn('renderAll', e); }
+  }
   populateSimVilleSelect();
   if (typeof initMap === 'function') initMap();
   onSimVilleChange();
@@ -40,14 +44,9 @@ function handleAppUrlParams() {
     // Pré-sélectionne une ville dans le simulateur (?ville=Lyon)
     var villeParam = qs.get('ville');
     if (villeParam) {
-      var sel = document.getElementById('simVille');
-      if (sel) {
-        var opt = Array.from(sel.options).find(function(o){ return o.value.toLowerCase() === villeParam.toLowerCase(); });
-        if (opt) {
-          sel.value = opt.value;
-          if (typeof onSimVilleChange === 'function') onSimVilleChange();
-        }
-      }
+      var norm = function(t){ return String(t).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().trim(); };
+      var city = VILLES.find(function(v){ return norm(v.Ville) === norm(villeParam); });
+      if (city && typeof pickSimVille === 'function') pickSimVille(city.Ville);
     }
   } catch(e) { console.warn('URL params error', e); }
 }
