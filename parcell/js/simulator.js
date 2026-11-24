@@ -4,22 +4,19 @@
 // pgCache, etc.) sont declares dans cities_loader.js. Ne PAS les redeclarer ici
 // (sinon SyntaxError "Identifier already declared" qui empeche le script de se charger).
 
-// ═══ MODE SIMPLE / PRO ═══
-function setMode(m){
-  simMode=m;
-  document.getElementById('modeSimple').classList.toggle('active',m==='simple');
-  document.getElementById('modePro').classList.toggle('active',m==='pro');
-  document.getElementById('modeSimple').classList.toggle('simple',true);
-  document.getElementById('modePro').classList.toggle('pro',true);
-  document.getElementById('blockSimple').style.display=m==='simple'?'block':'none';
-  document.getElementById('blockPro').style.display=m==='pro'?'block':'none';
-  document.getElementById('modeDesc').textContent=m==='simple'
-    ?'Estimez rapidement la rentabilité d\'un bien en quelques clics.'
-    :'Affinez chaque paramètre pour une simulation complète et précise.';
-  // La case "Inclure les charges (CC)" n'a de sens qu'en mode Pro (il y a des charges).
-  const ccWrap = document.getElementById('ccToggleWrap');
-  if (ccWrap) ccWrap.style.display = (m==='pro') ? 'inline-flex' : 'none';
-  calcSim();
+// ═══ SIMULATEUR UNIQUE ═══
+// Il n'y a plus de mode Simple/Pro : un seul simulateur avec des sections repliables.
+// setMode reste défini pour les projets sauvegardés qui contiennent encore params.mode.
+function setMode(){ simMode='pro'; calcSim(); }
+
+// Mémorise les sections ouvertes/fermées (confort, par navigateur)
+function rememberSection(el){
+  try{ const k='yrow_sec_'+el.id; localStorage.setItem(k, el.open?'1':'0'); }catch(_){}
+}
+function restoreSections(){
+  document.querySelectorAll('details.sim-sec').forEach(el=>{
+    try{ const v=localStorage.getItem('yrow_sec_'+el.id); if(v!==null) el.open = v==='1'; }catch(_){}
+  });
 }
 
 function toggleOpt(name,el){
@@ -38,20 +35,15 @@ function refreshOptsCount(){
   el.classList.toggle('has-active', n>0);
 }
 
-// ═══ SYNC entre simple et pro ═══
-function syncSurf(el){
-  document.getElementById('simSurf').value=el.value;
-  document.getElementById('simSurfS').value=el.value;
+// ═══ VALEURS PAR DÉFAUT AUTOMATIQUES ═══
+// Un champ que l'utilisateur a modifié (data-touched) n'est plus recalculé.
+function _num(id){ return parseFloat(document.getElementById(id)?.value)||0; }
+function _setAuto(id, v){
+  const el=document.getElementById(id);
+  if(el && !el.dataset.touched) el.value=Math.round(v);
 }
-function syncPrix(el){
-  // sync the other field
-  const other = el.id==='simPrix' ? 'simPrixS' : 'simPrix';
-  document.getElementById(other).value=el.value;
-}
-function autoNotaire(){
-  const p=parseFloat(document.getElementById('simPrix').value)||parseFloat(document.getElementById('simPrixS').value)||0;
-  document.getElementById('simNotaire').value=Math.round(p*0.075);
-}
+function autoNotaire(){ _setAuto('simNotaire', _num('simPrix')*0.075); }
+function syncField(){ /* conservé pour compatibilité */ }
 
 // ═══ TAB / RENDER ═══
 function switchTab(tab,el){
@@ -263,7 +255,7 @@ function onSimVilleChange(){
     if(customBlock) customBlock.style.display='block';
   } else {
     if(customBlock) customBlock.style.display='none';
-    const city=VILLES.find(c=>c.Ville===ville);
+    const city=simCity();
     if(city && city.hasQuartiers){
       if(qBlock) qBlock.style.display='block';
       if(qSel) qSel.innerHTML=LYON_QUARTIERS.map(q=>`<option value="${q.code}">${q.nom}</option>`).join('');
@@ -285,28 +277,41 @@ function updateSimLoyer(){
     tension = parseFloat(document.getElementById('customTension')?.value) || 5;
     cityName = 'Ville personnalisée';
   } else {
-    const city=VILLES.find(c=>c.Ville===ville); if(!city) return;
+    const city=simCity(); if(!city) return;
     const qCode=document.getElementById('simQuartier').value;
     if(city.hasQuartiers && qCode){
       const q=LYON_QUARTIERS.find(x=>x.code===qCode);
       if(q){ lyrBase=simType==='Apt'?q.loyer_apt:q.loyer_msn; tension=q.Tension; qLabel=' · '+qCode; }
     }
-    if(!lyrBase){ lyrBase=simType==='Apt'?city.Loyer_m2_Apt:city.Loyer_m2_Msn; tension=city.Tension; }
+    if(!lyrBase){ lyrBase=simType==='Apt'?(city.Loyer_m2_Apt||city.Loyer_m2_Msn):(city.Loyer_m2_Msn||city.Loyer_m2_Apt); tension=city.Tension; }
     cityName=city.Ville;
+    if(!lyrBase){
+      // Pas de loyer de référence pour cette commune (DOM-TOM, données manquantes…) :
+      // on garde le loyer saisi au lieu d'afficher 0 € et une rentabilité nulle.
+      document.getElementById('lyrInfo').textContent = `${cityName} · loyer de référence indisponible, saisissez le loyer attendu`;
+      calcSim();
+      return;
+    }
   }
 
-  const surf=parseFloat(document.getElementById(simMode==='simple'?'simSurfS':'simSurf').value)||45;
+  const surf=_num('simSurf')||45;
+  // Prix d'achat pré-rempli au prix du marché (prix m² × surface) tant qu'il n'a pas été saisi
+  if(ville!==CUSTOM_CITY){
+    const c=simCity(), qq=c?.hasQuartiers?LYON_QUARTIERS.find(x=>x.code===document.getElementById('simQuartier').value):null;
+    const pm2=qq?qq.prix_m2:(simType==='Apt'?(c?.Prix_m2_Apt||c?.Prix_m2_Msn):(c?.Prix_m2_Msn||c?.Prix_m2_Apt));
+    if(pm2){ _setAuto('simPrix', Math.round(pm2*surf/1000)*1000); autoNotaire(); }
+  }
   const pcs=parseInt(document.getElementById('simPcs').value)||2;
   const coef={1:1.2,2:1.0,3:0.9,4:0.85,5:0.8,6:0.75}[pcs]||0.9;
-  const meublePct=simMeuble&&simMode==='pro'?(parseFloat(document.getElementById('meublePct').value)||15)/100:0;
+  const meublePct=simMeuble?(parseFloat(document.getElementById('meublePct').value)||0)/100:0;
   let optBonus=0;
-  if(simMode==='pro'){ activeOpts.forEach(o=>optBonus+=OPT_BONUS[o]||0); }
-  const colocBonus = simMode==='pro' ? _colocBonus() : 0;
+  activeOpts.forEach(o=>optBonus+=OPT_BONUS[o]||0);
+  const colocBonus = _colocBonus();
   const loyerHC=Math.round(lyrBase*surf*coef*(1+meublePct)*(1+optBonus)*(1+colocBonus));
 
   // Mode "charges comprises" : on ajoute les charges copro à la valeur affichée.
   // Le calcul de rentabilité (calcSim) retire ce delta pour rester sur le loyer HC.
-  const charges = simMode==='pro' && simChargesInLoyer ? (parseFloat(document.getElementById('simCopro')?.value)||0) : 0;
+  const charges = simChargesInLoyer ? (parseFloat(document.getElementById('simCopro')?.value)||0) : 0;
   document.getElementById('simLoyer').value = loyerHC + Math.round(charges);
   const tLabel = `Tension ${tensionLabel(tension)} (${tension}/10)`;
   const ccBadge = simChargesInLoyer ? ' · CC' : '';
@@ -354,44 +359,48 @@ function onSimCoproChange(){
 }
 
 function calcSim(){
-  const isSimple=simMode==='simple';
   const O = (typeof simOptions !== 'undefined') ? simOptions : { pret:true, duree:true, taux:true, assurance:true, vacance:true };
 
-  const prix=parseFloat(document.getElementById(isSimple?'simPrixS':'simPrix').value)||0;
-  const notaire=isSimple?Math.round(prix*0.075):parseFloat(document.getElementById('simNotaire').value)||0;
-  const travaux=isSimple?5000:parseFloat(document.getElementById('simTravaux').value)||0;
-  const apport=parseFloat(document.getElementById(isSimple?'simApportS':'simApport').value)||0;
-  const copro=isSimple?0:parseFloat(document.getElementById('simCopro').value)||0;
-  // Si le loyer affiché est en charges comprises (CC), on retire les charges pour
-  // ne calculer les KPIs que sur le loyer HC (sinon la rentabilité serait gonflée).
-  const loyerDisplayed=parseFloat(document.getElementById('simLoyer').value)||0;
-  const loyer = (!isSimple && simChargesInLoyer) ? Math.max(0, loyerDisplayed - Math.round(copro)) : loyerDisplayed;
+  const prix=_num('simPrix');
+  const surf=_num('simSurf')||45;
+  const notaire=_num('simNotaire');
+  const travaux=_num('simTravaux');
+  const apport=_num('simApport');
+  // Le champ loyer peut être affiché charges comprises (CC) : on revient toujours au HC.
+  const loyerDisplayed=_num('simLoyer');
+  const copro=_num('simCopro');
+  const loyer = simChargesInLoyer ? Math.max(0, loyerDisplayed - Math.round(copro)) : loyerDisplayed;
 
-  // En mode Pro, on respecte les cases à cocher. En Simple, les défauts.
-  const pretOn      = isSimple ? true  : O.pret;
-  const dureeOn     = isSimple ? true  : O.duree;
-  const tauxOn      = isSimple ? true  : O.taux;
-  const assuranceOn = isSimple ? true  : O.assurance;
-  const vacanceOn   = isSimple ? true  : O.vacance;
+  // Valeurs par défaut réalistes tant que l'utilisateur ne les a pas modifiées
+  _setAuto('simTaxeFonciere', loyer);                  // ≈ 1 mois de loyer
+  _setAuto('simEntretien', prix*0.005);                // 0,5 % du prix par an
+  _setAuto('simCopro', simType==='Apt' ? surf*0.5 : 0); // ≈ 0,5 €/m²/mois non récupérable
+  const coproM=_num('simCopro');
+  const taxeF=_num('simTaxeFonciere'), pno=_num('simPno'), entretien=_num('simEntretien');
+  const gestionPct=_num('simGestion')/100;
 
-  const duree    = !pretOn ? 0   : (dureeOn     ? (isSimple ? 20  : parseInt(document.getElementById('simDuree').value)||20)   : 20);
-  const taux     = !pretOn ? 0   : (tauxOn      ? (isSimple ? 3.6 : parseFloat(document.getElementById('simTaux').value)||3.6) : 0);
-  const assurPct = !pretOn ? 0   : (assuranceOn ? (isSimple ? 0.20: parseFloat(document.getElementById('simAssur').value)||0.20) : 0);
-  const vacance  = vacanceOn ? (isSimple ? 1 : parseFloat(document.getElementById('simVacance').value)||1) : 0;
+  const pretOn=O.pret;
+  const duree    = !pretOn ? 0 : (O.duree ? (parseInt(document.getElementById('simDuree').value)||20) : 20);
+  const taux     = !pretOn ? 0 : (O.taux ? (parseFloat(document.getElementById('simTaux').value)||3.6) : 0);
+  const assurPct = !pretOn ? 0 : (O.assurance ? (parseFloat(document.getElementById('simAssur').value)||0.20) : 0);
+  const vacance  = O.vacance ? (parseFloat(document.getElementById('simVacance').value)||0) : 0;
 
   const total=prix+notaire+travaux;
   const pret = !pretOn ? 0 : Math.max(0,total-apport);
   const tauxM=(taux/100)/12, n=duree*12;
   const mensualite = (pret>0 && tauxM>0) ? pret*(tauxM*Math.pow(1+tauxM,n))/(Math.pow(1+tauxM,n)-1)
-                   : (pret>0 ? pret/n : 0);
+                   : (pret>0 && n>0 ? pret/n : 0);
   const assurMens=(pret*assurPct/100)/12;
   const loyerAjuste=loyer*(1-vacance/12);
-  const chargesMens=total*0.005/12+copro;
-  const rentBrute=total>0?(loyer*12)/total:0;
-  const rentNette=total>0?(loyerAjuste*12-chargesMens*12)/total:0;
+  const chargesAn=taxeF+pno+entretien+coproM*12+gestionPct*loyerAjuste*12;
+  const chargesMens=chargesAn/12;
+  // Brut : loyers annuels / prix d'achat (définition usuelle, identique à la page d'accueil)
+  const rentBrute=prix>0?(loyer*12)/prix:0;
+  // Net : loyers encaissés − charges, rapportés au coût total (prix + notaire + travaux)
+  const rentNette=total>0?(loyerAjuste*12-chargesAn)/total:0;
   const cashflow=loyerAjuste-mensualite-assurMens-chargesMens;
 
-  simData={total,pret,mensualite,assurMens,loyer,loyerAjuste,chargesMens,rentBrute,rentNette,cashflow,vacance,taux,duree,assurPct,copro};
+  simData={total,pret,mensualite,assurMens,loyer,loyerAjuste,chargesMens,chargesAn,taxeF,pno,entretien,copro:coproM,gestionPct,rentBrute,rentNette,cashflow,vacance,taux,duree,assurPct,prix};
 
   document.getElementById('totalProjet').textContent=fmt(total)+' €';
   document.getElementById('montantPret').textContent=fmt(pret)+' €';
@@ -403,13 +412,27 @@ function calcSim(){
   cfVal.textContent=(cashflow>=0?'+':'')+fmt(Math.round(cashflow))+' €/mois';
   cfVal.style.color=cashflow>=0?'var(--green)':'var(--red)';
   cfBox.className='cashflow-indicator '+(cashflow>=0?'cashflow-pos':'cashflow-neg');
+  updateSectionHints();
+}
+
+// Résumé affiché sur chaque section repliée
+function updateSectionHints(){
+  const d=simData||{}, set=(id,t)=>{const e=document.getElementById(id); if(e) e.textContent=t;};
+  set('hint-financement', d.pret>0 ? `${fmt(d.pret)} € sur ${d.duree} ans à ${String(d.taux).replace('.',',')} %` : 'Sans prêt');
+  set('hint-achat', `Notaire ${fmt(_num('simNotaire'))} € · travaux ${fmt(_num('simTravaux'))} €`);
+  const loc=[simMeuble?'Meublé':'Nu'];
+  if(simColoc.on) loc.push('coloc');
+  loc.push(`vacance ${String(d.vacance||0).replace('.',',')} mois`);
+  if(activeOpts.size) loc.push(activeOpts.size+' atout'+(activeOpts.size>1?'s':''));
+  set('hint-location', loc.join(' · '));
+  set('hint-charges', `${fmt(Math.round(d.chargesAn||0))} €/an`);
 }
 
 // ═══ DRAWER ═══
 function openDrawer(type){
   if(drawerChart){drawerChart.destroy();drawerChart=null;}
   const ville=document.getElementById('simVille').value;
-  const city=VILLES.find(c=>c.Ville===ville);
+  const city=simCity();
   const qCode=document.getElementById('simQuartier').value;
   const locLabel=city?.hasQuartiers&&qCode?`${ville} · ${qCode}`:ville;
   const dt=document.getElementById('drawerTitle'),ds=document.getElementById('drawerSubtitle'),dc=document.getElementById('drawerContent');
@@ -425,7 +448,7 @@ function openDrawer(type){
         <div class="drawer-stat"><div class="drawer-stat-label">Loyer annuel</div><div class="drawer-stat-value">${fmt(Math.round(simData.loyer*12))} €</div></div>
         <div class="drawer-stat"><div class="drawer-stat-label">Coût total</div><div class="drawer-stat-value">${fmt(simData.total)} €</div></div>
       </div>
-      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;">${bench} · Rentabilité brute de <strong>${rb}%</strong><br><span style="color:var(--text3);font-size:12px;">Vacance ${simData.vacance} mois/an · Charges ${fmt(Math.round(simData.chargesMens*12))} €/an</span></div>
+      <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;">${bench} · Rentabilité brute de <strong>${rb}%</strong><br><span style="color:var(--text3);font-size:12px;">Vacance ${String(simData.vacance).replace('.',',')} mois/an · Charges ${fmt(Math.round(simData.chargesAn))} €/an (taxe foncière ${fmt(Math.round(simData.taxeF))} €, copro ${fmt(Math.round(simData.copro*12))} €, PNO ${fmt(Math.round(simData.pno))} €, entretien ${fmt(Math.round(simData.entretien))} €${simData.gestionPct?', gestion '+fmt(Math.round(simData.gestionPct*simData.loyerAjuste*12))+' €':''})</span><br><span style="color:var(--text3);font-size:12px;">Brut = loyers ÷ prix d'achat · Net = (loyers encaissés − charges) ÷ coût total</span></div>
     </div>
     <div class="drawer-section"><div class="drawer-section-title">Pistes d'amélioration</div><div style="font-size:13px;color:var(--text2);line-height:1.7;">• Négocier le prix d'achat<br>• Passer en meublé LMNP (+15–20% loyer)<br>• Choisir un quartier à forte tension locative<br>• Réduire vacance : bon emplacement, gestion proactive</div></div>`;
   } else if(type==='credit'){
@@ -440,7 +463,7 @@ function openDrawer(type){
       </div>
       <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:12px 14px;font-size:13px;color:var(--text2);">Coût total du crédit : <strong style="color:var(--text)">${fmt(Math.round(tI+tA))} €</strong> sur ${simData.duree} ans · Taux ${simData.taux}%</div></div>`;
   } else if(type==='cashflow'){
-    dt.textContent='Projection cashflow 20 ans';ds.textContent=locLabel+' · loyers +1.5%/an';
+    dt.textContent='Projection cashflow 20 ans';ds.textContent=locLabel+' · cashflow mensuel moyen par année';
     dc.innerHTML=`
       <div class="drawer-section">
         <div class="drawer-chart-wrap" style="position:relative;height:220px;">
@@ -449,10 +472,11 @@ function openDrawer(type){
       </div>
       <div class="drawer-section"><div class="drawer-section-title">Hypothèses</div>
         <div style="font-size:12px;color:var(--text2);line-height:1.8;">
-          • Inflation loyers +1.5%/an<br>
-          • Vacance ${simData.vacance||1} mois/an<br>
-          • Charges entretien 0.5%/an du bien<br>
-          • Mensualité fixe sur toute la durée
+          • Loyers et charges +1,5 %/an<br>
+          • Vacance ${String(simData.vacance??0).replace('.',',')} mois/an<br>
+          • Charges et taxes ${fmt(Math.round(simData.chargesAn||0))} €/an la première année<br>
+          • Crédit sur ${simData.duree||0} ans : plus de mensualité ensuite<br>
+          • Avant impôts
         </div>
       </div>`;
     // Attendre que le DOM soit peint
@@ -462,10 +486,11 @@ function openDrawer(type){
         if(!canvas){return;}
         if(drawerChart){drawerChart.destroy();drawerChart=null;}
         const years=Array.from({length:20},(_,i)=>i+1);
-        const cfs=years.map(a=>Math.round(
-          (simData.loyer||0)*Math.pow(1.015,a)*(1-(simData.vacance||1)/12)
-          -(simData.mensualite||0)-(simData.assurMens||0)-(simData.chargesMens||0)
-        ));
+        const cfs=years.map(a=>{
+          const idx=Math.pow(1.015,a-1);
+          const credit = a<=(simData.duree||0) ? (simData.mensualite||0)+(simData.assurMens||0) : 0;
+          return Math.round((simData.loyerAjuste||0)*idx - (simData.chargesMens||0)*idx - credit);
+        });
         drawerChart=new Chart(canvas.getContext('2d'),{
           type:'bar',
           data:{labels:years.map(y=>`An ${y}`),datasets:[{
@@ -483,33 +508,30 @@ function openDrawer(type){
   } else if(type==='loyer-source'){
     dt.textContent='D’où vient cette estimation ?';ds.textContent=locLabel;
     const cur = city ? (simType==='Apt' ? city.Loyer_m2_Apt : city.Loyer_m2_Msn) : null;
-    const est2026 = cur ? Math.round(cur*1.08*100)/100 : null;
-    const seloger = cur ? Math.round(cur*1.18*100)/100 : null;
+    const src = city?.source_loyer || 'Carte des Loyers (ministère du Logement)';
     dc.innerHTML = `
       <div class="drawer-section">
         <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:14px 16px;font-size:13px;color:var(--text2);line-height:1.65;">
-          Le loyer par m² affiché par Yrow provient de la <strong style="color:var(--text)">Carte des Loyers 2023</strong>, publiée par le <strong style="color:var(--text)">Ministère du Logement</strong> (INSEE + SeLoger + LocServ). C'est la référence officielle utilisée par les banques et l'administration fiscale.
+          Le loyer au m² proposé par Yrow provient de la <strong style="color:var(--text)">${src}</strong> : un loyer d'annonce médian, hors charges, estimé par commune à partir des annonces publiées sur les grands portails.
         </div>
       </div>
-      ${cur ? `<div class="drawer-section"><div class="drawer-section-title">Estimation pour ${locLabel}</div>
+      ${cur ? `<div class="drawer-section"><div class="drawer-section-title">Référence pour ${locLabel}</div>
         <div class="drawer-stat-grid">
-          <div class="drawer-stat"><div class="drawer-stat-label">Médiane 2023 (officielle)</div><div class="drawer-stat-value" style="color:var(--gold)">${cur} €/m²</div></div>
-          <div class="drawer-stat"><div class="drawer-stat-label">Actualisé 2026 (+8%)</div><div class="drawer-stat-value" style="color:var(--teal)">${est2026} €/m²</div></div>
-          <div class="drawer-stat"><div class="drawer-stat-label">SeLoger / Leboncoin</div><div class="drawer-stat-value">~${seloger} €/m²</div></div>
-          <div class="drawer-stat"><div class="drawer-stat-label">Meublé refait</div><div class="drawer-stat-value">+15 à 25%</div></div>
+          <div class="drawer-stat"><div class="drawer-stat-label">Loyer médian (${simType==='Apt'?'appartement':'maison'})</div><div class="drawer-stat-value" style="color:var(--gold)">${cur} €/m²</div></div>
+          <div class="drawer-stat"><div class="drawer-stat-label">Meublé</div><div class="drawer-stat-value">souvent +10 à 20 %</div></div>
         </div>
-      </div>` : ''}
-      <div class="drawer-section"><div class="drawer-section-title">Pourquoi c'est plus bas que SeLoger ?</div>
+      </div>` : `<div class="drawer-section"><div style="font-size:13px;color:var(--text2);">Pas de loyer de référence pour cette commune : saisissez le loyer attendu.</div></div>`}
+      <div class="drawer-section"><div class="drawer-section-title">Pourquoi l'écart avec les annonces ?</div>
         <div style="font-size:13px;color:var(--text2);line-height:1.75;">
-          • <strong style="color:var(--text)">Médiane vs annonces actives.</strong> La Carte des Loyers inclut tout le parc (baux longs, grands appartements moins chers au m²). SeLoger n'affiche que les annonces en cours, biaisées vers petits T1/T2 et biens refaités.<br>
-          • <strong style="color:var(--text)">Année de référence.</strong> Données 2023, +7 à 10% depuis en province.<br>
-          • <strong style="color:var(--text)">Hors charges.</strong> Le chiffre est HC (méthode INSEE). Les annonces "CC" ajoutent 1-2 €/m².<br>
-          • <strong style="color:var(--text)">Meublé non distingué.</strong> Le meublé se loue 15-25% plus cher que le nu.
+          • <strong style="color:var(--text)">Médiane de la commune.</strong> C'est un loyer typique, toutes surfaces confondues : un petit T1 refait se loue plus cher au m², un grand logement moins cher.<br>
+          • <strong style="color:var(--text)">Année de référence.</strong> Les données ont un ou deux ans de décalage avec le marché actuel.<br>
+          • <strong style="color:var(--text)">Hors charges.</strong> Les annonces « charges comprises » affichent un loyer plus élevé.<br>
+          • <strong style="color:var(--text)">Meublé non distingué.</strong> Le meublé se loue en général plus cher que le nu.
         </div>
       </div>
       <div class="drawer-section"><div class="drawer-section-title">Comment ajuster</div>
         <div style="font-size:13px;color:var(--text2);line-height:1.75;">
-          Le champ loyer est <strong style="color:var(--text)">éditable manuellement</strong>. Pour un scénario plus optimiste (T2 refait, meublé, centre-ville), tu peux monter au niveau SeLoger. Pour la <strong style="color:var(--text)">rentabilité réelle sur 10-20 ans</strong>, garder la médiane officielle est plus fiable. C'est ce que fera aussi ton banquier.
+          Le champ loyer est <strong style="color:var(--text)">éditable manuellement</strong>. Pour un bien refait, meublé ou très bien placé, vous pouvez le relever en vous appuyant sur les annonces comparables du quartier. Pour estimer la <strong style="color:var(--text)">rentabilité sur 10 à 20 ans</strong>, rester proche de la médiane est plus prudent.
         </div>
       </div>`;
   } else if(type==='marche'){
@@ -517,26 +539,27 @@ function openDrawer(type){
     const pop=city?.['2022']||50000,attr=city?.Attractivite||7,tension=city?.Tension||5;
     const qCode2=document.getElementById('simQuartier').value;
     const qTension=city?.hasQuartiers&&qCode2?LYON_QUARTIERS.find(q=>q.code===qCode2)?.Tension||tension:tension;
-    const seed=pop+attr*1000;const sn=n=>Math.sin(seed*n)*0.5+0.5;
-    const nbV=Math.max(8,Math.round(pop*0.0045*(attr/7)*(0.85+sn(3)*0.3)));
-    const nbL=Math.max(3,Math.round(pop*0.003*(attr/7)*(0.85+sn(7)*0.3)));
-    const delai=Math.round(55-attr*3.5);
     const tLvl=qTension>=8?4:qTension>=6?3:qTension>=4?2:1;
     const tClass=qTension>=8?'hi':qTension>=5?'md':'';
     const v=encodeURIComponent(ville);
+    const q=city?.hasQuartiers&&qCode2?LYON_QUARTIERS.find(x=>x.code===qCode2):null;
+    const prixM2=q?q.prix_m2:(simType==='Apt'?city?.Prix_m2_Apt:(city?.Prix_m2_Msn||city?.Prix_m2_Apt));
+    const loyM2=q?(simType==='Apt'?q.loyer_apt:q.loyer_msn):(simType==='Apt'?city?.Loyer_m2_Apt:city?.Loyer_m2_Msn);
+    const rdt=prixM2&&loyM2?(loyM2*12/prixM2*100).toFixed(1).replace('.',',')+' %':'n.d.';
+    const stat=(l,val,c)=>`<div class="drawer-stat"><div class="drawer-stat-label">${l}</div><div class="drawer-stat-value" style="color:${c||'var(--text)'}">${val}</div></div>`;
     dc.innerHTML=`<div class="drawer-section"><div class="drawer-section-title">Tension locative</div>
       <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:14px;font-weight:600;">${tensionLabel(qTension)}</span><span style="font-family:'Outfit';font-size:18px;font-weight:700;color:${tensionColor(qTension)}">${qTension}/10</span></div>
         <div class="tension-bar-draw">${[1,2,3,4].map(i=>`<div class="tseg ${i<=tLvl?'on '+tClass:''}"></div>`).join('')}</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:8px;">Source : LocService / Manda 2024 · ${tensionLabel(qTension)==='Détendue'?'Beaucoup de biens disponibles, concurrence élevée entre propriétaires. Le loyer maximum est rarement atteint.':tensionLabel(qTension)==='Modérée'?'Marché équilibré. Les biens bien présentés se louent au prix du marché.':tensionLabel(qTension)==='Tendue'?'Forte demande. Les biens se louent rapidement, souvent au prix demandé.':'Marché extrêmement tendu. Les biens se louent en moins de 48h avec plusieurs dossiers.'}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:8px;">Score Yrow calculé à partir de la taille de la ville et de son classement en zone tendue.</div>
       </div>
       <div class="drawer-stat-grid">
-        <div class="drawer-stat"><div class="drawer-stat-label">Biens à vendre</div><div class="drawer-stat-value" style="color:var(--gold)">~${nbV}</div></div>
-        <div class="drawer-stat"><div class="drawer-stat-label">Biens à louer</div><div class="drawer-stat-value" style="color:var(--teal)">~${nbL}</div></div>
-        <div class="drawer-stat"><div class="drawer-stat-label">Délai vente moy.</div><div class="drawer-stat-value" style="color:var(--text2)">${delai}j</div></div>
-        <div class="drawer-stat"><div class="drawer-stat-label">Tension loc.</div><div class="drawer-stat-value" style="color:${tensionColor(qTension)}">${tensionLabel(qTension)}</div></div>
+        ${stat('Prix m² ('+(simType==='Apt'?'appart.':'maison')+')', prixM2?Math.round(prixM2).toLocaleString('fr-FR')+' €':'n.d.','var(--gold)')}
+        ${stat('Loyer m²', loyM2?loyM2+' €':'n.d.','var(--teal)')}
+        ${stat('Rendement brut médian', rdt)}
+        ${stat('Population', pop?Math.round(pop).toLocaleString('fr-FR'):'n.d.','var(--text2)')}
       </div>
-      <div style="font-size:11px;color:var(--text3);font-style:italic;margin-bottom:14px;">* Estimations indicatives. Sources : LocService, Manda, INSEE 2024.</div>
+      <div style="font-size:11px;color:var(--text3);font-style:italic;margin-bottom:14px;">Sources : ${q?'repères Yrow par arrondissement':'DVF (DGFiP) pour les prix, '+(city?.source_loyer||'Carte des Loyers')+' pour les loyers'}, INSEE pour la population.</div>
     </div>
     <div class="drawer-section"><div class="drawer-section-title">Rechercher des annonces</div>
       <a class="drawer-link dl-teal" href="https://www.seloger.com/annonces/achat/${v}.htm" target="_blank">🔍 SeLoger</a>
@@ -559,13 +582,11 @@ function applyExtracted(data){
 
   if(data.prix&&data.prix>10000&&data.prix<5000000){
     document.getElementById('simPrix').value=data.prix;
-    document.getElementById('simPrixS').value=data.prix;
     autoNotaire();
     fields.push(`Prix : ${data.prix.toLocaleString('fr-FR')} €`);
   }
   if(data.surface&&data.surface>=9&&data.surface<=1000){
     document.getElementById('simSurf').value=data.surface;
-    document.getElementById('simSurfS').value=data.surface;
     fields.push(`Surface : ${data.surface} m²`);
   }
   if(data.pieces&&data.pieces>=1&&data.pieces<=6){

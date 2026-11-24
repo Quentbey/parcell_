@@ -106,7 +106,7 @@ async function shareProject(projectId) {
 
   if (error) { showToast('Erreur création du lien', 'err'); return; }
 
-  const shareUrl = `${window.location.origin}/?share=${shareToken}`;
+  const shareUrl = `${window.location.origin}/app.html?share=${shareToken}#simulateur`;
   await navigator.clipboard.writeText(shareUrl).catch(() => {});
   showToast('Lien copié ! 🔗');
   project.share_token = shareToken;
@@ -367,18 +367,29 @@ document.addEventListener('click', () => {
 function loadProject(id) {
   const p = savedProjects.find(x => String(x.id) === String(id));
   if (!p) return;
+  applyProjectToSim(p);
+}
 
+// ── Ouvre un projet partagé (lien /app.html?share=<token>) ──
+async function loadSharedProject(token) {
+  if (!/^[0-9a-f-]{36}$/i.test(token || '')) return;
+  const { data, error } = await supabaseClient.rpc('get_shared_project', { token });
+  const p = Array.isArray(data) ? data[0] : data;
+  if (error || !p) { showToast('Ce lien de partage n\'est plus valide', 'err'); return; }
+  applyProjectToSim(p);
+}
+
+function applyProjectToSim(p) {
   switchTab('simulateur', document.querySelector('.main-tab:nth-child(2)'));
 
   setTimeout(() => {
     const simV = document.getElementById('simVille');
     if (simV) { simV.value = p.ville; onSimVilleChange(); }
     document.getElementById('simSurf').value = p.surface;
-    document.getElementById('simSurfS').value = p.surface;
     document.getElementById('simPcs').value = p.pieces;
     document.getElementById('pcsVal').textContent = p.pieces;
     document.getElementById('simPrix').value = p.prix_achat;
-    document.getElementById('simPrixS').value = p.prix_achat;
+    document.getElementById('simPrix').dataset.touched = 1;
     document.getElementById('simLoyer').value = p.loyer_mensuel;
     setType(p.type_bien === 'Apt' ? 'Apt' : 'Msn');
     p.meuble ? setMeuble(true) : setMeuble(false);
@@ -401,11 +412,19 @@ function loadProject(id) {
       if (p.params.duree)  { document.getElementById('simDuree').value = p.params.duree; document.getElementById('dureeVal').textContent = p.params.duree + ' ans'; }
       if (p.params.taux)   { document.getElementById('simTaux').value = p.params.taux;   document.getElementById('tauxVal').textContent = parseFloat(p.params.taux).toFixed(1) + '%'; }
       if (p.params.vacance){ document.getElementById('simVacance').value = p.params.vacance; document.getElementById('vacanceVal').textContent = p.params.vacance + ' mois/an'; }
-      if (p.params.apport) { document.getElementById('simApport').value = p.params.apport; document.getElementById('simApportS').value = p.params.apport; }
-      if (p.params.notaire){ document.getElementById('simNotaire').value = p.params.notaire; }
+      if (p.params.apport) { document.getElementById('simApport').value = p.params.apport; }
+      if (p.params.notaire){ const el=document.getElementById('simNotaire'); el.value = p.params.notaire; el.dataset.touched = 1; }
       if (p.params.travaux){ document.getElementById('simTravaux').value = p.params.travaux; }
       if (p.params.assur)  { document.getElementById('simAssur').value = p.params.assur; document.getElementById('assurVal').textContent = parseFloat(p.params.assur).toFixed(2) + '%'; }
-      if (p.params.copro != null){ document.getElementById('simCopro').value = p.params.copro; }
+      if (p.params.copro != null){ const el=document.getElementById('simCopro'); el.value = p.params.copro; el.dataset.touched = 1; }
+      // Charges ajoutées avec le simulateur unique (absentes des anciens projets : valeurs auto)
+      [['taxeFonciere','simTaxeFonciere'],['entretien','simEntretien']].forEach(([k,id]) => {
+        const el=document.getElementById(id);
+        if (!el) return;
+        if (p.params[k] != null) { el.value = p.params[k]; el.dataset.touched = 1; } else { delete el.dataset.touched; }
+      });
+      if (p.params.pno != null) document.getElementById('simPno').value = p.params.pno;
+      if (p.params.gestion != null) document.getElementById('simGestion').value = p.params.gestion;
       if (p.params.meublePct){ document.getElementById('meublePct').value = p.params.meublePct; }
 
       // Colocation
@@ -462,6 +481,11 @@ function loadProject(id) {
     // Si on n'a pas restaure de notaire personnalise, on calcule
     if (!p.params?.notaire) autoNotaire();
     calcSim();
+    // Le loyer saisi dans le projet prime sur l'estimation recalculée par les appels ci-dessus
+    setTimeout(() => {
+      if (p.loyer_mensuel != null) document.getElementById('simLoyer').value = p.loyer_mensuel;
+      calcSim();
+    }, 150);
     showToast(`"${p.name}" chargé ✓`);
   }, 100);
 }
@@ -501,7 +525,7 @@ async function saveProject() {
     mensualite: parseFloat(document.getElementById('mensualite')?.textContent) || 0,
     cashflow: parseFloat(document.getElementById('cashflowVal')?.textContent) || 0,
     params: {
-      mode:    (typeof simMode !== 'undefined' ? simMode : 'simple'),
+      mode:    'pro',
       duree:   document.getElementById('simDuree')?.value,
       taux:    document.getElementById('simTaux')?.value,
       vacance: document.getElementById('simVacance')?.value,
@@ -510,6 +534,10 @@ async function saveProject() {
       travaux: document.getElementById('simTravaux')?.value,
       assur:   document.getElementById('simAssur')?.value,
       copro:   document.getElementById('simCopro')?.value,
+      taxeFonciere: document.getElementById('simTaxeFonciere')?.value,
+      pno:     document.getElementById('simPno')?.value,
+      entretien: document.getElementById('simEntretien')?.value,
+      gestion: document.getElementById('simGestion')?.value,
       meublePct: document.getElementById('meublePct')?.value,
       coloc:   (typeof simColoc !== 'undefined' && simColoc.on) ? simColoc.n : 0,
       options: (typeof simOptions !== 'undefined') ? {

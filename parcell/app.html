@@ -22,7 +22,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <link rel="stylesheet" href="css/site.css?v=3">
-<link rel="stylesheet" href="css/main.css?v=3">
+<link rel="stylesheet" href="css/main.css?v=4">
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="mask-icon" href="/favicon.svg" color="#c9a84c">
 <meta name="theme-color" content="#c9a84c">
@@ -172,12 +172,12 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js" defer></script>
 <script src="js/config.js?v=3" defer></script>
-<script src="js/cities_loader.js?v=12" defer></script>
+<script src="js/cities_loader.js?v=14" defer></script>
 <script src="js/auth.js?v=7" defer></script>
-<script src="js/simulator.js?v=13" defer></script>
-<script src="js/projects.js?v=11" defer></script>
+<script src="js/simulator.js?v=15" defer></script>
+<script src="js/projects.js?v=12" defer></script>
 <script src="js/admin.js?v=2" defer></script>
-<script src="js/app.js?v=15" defer></script>
+<script src="js/app.js?v=17" defer></script>
 
 <!-- Cohérence : nav active + en-tête de page selon l'onglet + ancres -->
 <script>
@@ -199,7 +199,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   };
   function tabFromHash(){
     var t=(location.hash||'').replace('#','');
-    return ['simulateur','analyse','compte'].indexOf(t)>=0 ? t : 'analyse';
+    return ['simulateur','analyse','compte'].indexOf(t)>=0 ? t : 'simulateur';
   }
   function applyTab(t){
     if(typeof switchTab==='function') switchTab(t,null);
@@ -217,7 +217,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
           // Synchronise l'URL avec l'onglet courant (sans déclencher hashchange)
           var newHash = '#' + tab;
           if (['simulateur','analyse','compte'].indexOf(tab) >= 0 && location.hash !== newHash) {
-            history.replaceState(null, '', location.pathname + newHash);
+            history.replaceState(null, '', location.pathname + location.search + newHash);
           }
         };
       }

@@ -143,10 +143,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       </div>
       <div class="kpi-row mini">
         <div class="kpi"><div class="k-label">Rendement brut</div><div class="k-val k-teal" id="mBrut">4,4 %</div></div>
-        <div class="kpi"><div class="k-label">Rendement net estimé</div><div class="k-val k-gold" id="mNet">3,2 %</div></div>
+        <div class="kpi"><div class="k-label">Rendement net estimé</div><div class="k-val k-gold" id="mNet">2,9 %</div></div>
         <div class="kpi"><div class="k-label">Loyers par an</div><div class="k-val" id="mAn">10 200 €</div></div>
       </div>
-      <a href="/app.html#simulateur" class="btn btn-primary sim-cta"><svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg> Simulation complète (crédit, cashflow, fiscalité)</a>
+      <a href="/app.html#simulateur" class="btn btn-primary sim-cta"><svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"/></svg> Simulation complète (crédit, charges, cashflow)</a>
     </div>
   </div>
 </section>
@@ -283,8 +283,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div style="font-size:11px;color:var(--teal);text-transform:uppercase;letter-spacing:0.18em;font-weight:600;margin-bottom:10px;">Newsletter</div>
       <h2 style="font-size:24px;text-align:left;">Restez informé des bonnes opportunités</h2>
       <p style="color:var(--text2);margin-top:10px;text-align:left;">Recevez nos analyses de villes et conseils d'investissement locatif. Pas de spam, désinscription en un clic.</p>
-      <!-- Brevo / Mailchimp : remplacer data-action par l'URL du formulaire. -->
-      <form class="news-form" id="newsForm" data-action="[À COMPLÉTER : URL Brevo (ou Mailchimp)]" method="POST" novalidate>
+      <form class="news-form" id="newsForm" method="POST" novalidate>
         <p style="display:none;"><label>Ne pas remplir : <input name="bot-field"></label></p>
         <input type="email" name="EMAIL" required placeholder="vous@email.fr" aria-label="Votre adresse email">
         <button class="btn btn-primary" type="submit">S'inscrire</button>
@@ -298,7 +297,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:0.18em;font-weight:600;margin-bottom:10px;">Contact</div>
       <h2 style="font-size:24px;text-align:left;">Un retour, une suggestion ?</h2>
       <p style="color:var(--text2);margin-top:10px;text-align:left;">Écris-nous ce qui te plaît, ce qui manque, ou ce que tu aimerais voir évoluer. On lit tout.</p>
-      <form class="news-form" id="contactForm" data-action="[À COMPLÉTER : URL Brevo/Formspree]" method="POST" novalidate style="display:flex;flex-direction:column;gap:10px;">
+      <form class="news-form" id="contactForm" method="POST" novalidate style="display:flex;flex-direction:column;gap:10px;">
         <input type="text" name="NAME" placeholder="Votre prénom (optionnel)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;">
         <input type="email" name="EMAIL" required placeholder="Votre email" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;">
         <textarea name="MESSAGE" required placeholder="Votre message..." rows="4" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;resize:vertical;min-height:96px;"></textarea>
@@ -397,7 +396,10 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   function pct(n){return n.toLocaleString('fr-FR',{minimumFractionDigits:1,maximumFractionDigits:1})+' %';}
   function miniCalc(){
     var prix=parseFloat(mp.value)||0,loyer=parseFloat(ml.value)||0,an=loyer*12;
-    var brut=prix>0?an/prix*100:0, net=brut*0.72; // ~28% de charges/taxe/vacance (estimation)
+    // Mêmes hypothèses par défaut que le simulateur : notaire 7,5 %, 5 000 € de travaux,
+    // 1 mois de vacance, taxe foncière ≈ 1 mois de loyer, PNO 150 €/an, entretien 0,5 %/an.
+    var brut=prix>0?an/prix*100:0, cout=prix*1.075+5000,
+        net=prix>0?(loyer*11-(loyer+150+prix*0.005))/cout*100:0;
     document.getElementById('mBrut').textContent=pct(brut);
     document.getElementById('mNet').textContent=pct(net);
     document.getElementById('mAn').textContent=eur(an);
@@ -405,11 +407,13 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   if(mp&&ml){mp.addEventListener('input',miniCalc);ml.addEventListener('input',miniCalc);miniCalc();}
 
   // ── Villes exemples : rotation toutes les 5s ──
+  // Rendement brut médian (loyer m² × 12 / prix m²) : base Yrow (DVF + Carte des Loyers)
+  // et repères par arrondissement de la page Lyon. À tenir aligné avec ces sources.
   var CITY_POOL=[
-    {n:'Saint-Étienne',y:8.1},{n:'Lyon 6e',y:3.7},{n:'Lyon 8e',y:4.4},
-    {n:'Bordeaux',y:4.5},{n:'Lille',y:5.8},{n:'Marseille',y:5.5},
-    {n:'Toulouse',y:5.0},{n:'Nantes',y:4.8},{n:'Strasbourg',y:5.2},
-    {n:'Montpellier',y:5.0},{n:'Rennes',y:4.6},{n:'Nice',y:4.2}
+    {n:'Saint-Étienne',y:8.6},{n:'Lyon 6e',y:4.1},{n:'Lyon 8e',y:4.7},
+    {n:'Bordeaux',y:4.3},{n:'Lille',y:4.5},{n:'Montpellier',y:5.2},
+    {n:'Toulouse',y:4.9},{n:'Nantes',y:4.9},{n:'Lyon 3e',y:4.9},
+    {n:'Rennes',y:4.6},{n:'Nice',y:4.8}
   ];
   var cityIdx=0;
   function renderCityBars(){
@@ -424,30 +428,38 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   renderCityBars();
   setInterval(function(){ cityIdx=(cityIdx+1)%CITY_POOL.length; renderCityBars(); }, 5000);
 
-  // ── Formulaire contact ──
-  var cf=document.getElementById('contactForm');
-  if(cf)cf.addEventListener('submit',function(e){
-    e.preventDefault();
-    var action=(cf.getAttribute('data-action')||'').trim();
-    var configured=action && action.indexOf('À COMPLÉTER')===-1 && /^https?:\/\//.test(action);
-    if(configured){ try{ fetch(action,{method:'POST',body:new FormData(cf),mode:'no-cors'}).catch(function(){}); }catch(_){} }
-    cf.style.display='none';
-    var ok=document.getElementById('contactOk'); if(ok) ok.style.display='block';
-  });
-
-  // Capture email : envoi vers Brevo (ou Mailchimp) si data-action est configuré.
-  // Sinon, on confirme localement (la collecte ne se fera qu'apres configuration).
-  var nf=document.getElementById('newsForm');
-  if(nf)nf.addEventListener('submit',function(e){
-    e.preventDefault();
-    var action = (nf.getAttribute('data-action')||'').trim();
-    var configured = action && action.indexOf('À COMPLÉTER') === -1 && /^https?:\/\//.test(action);
-    if (configured) {
-      try { fetch(action, { method:'POST', body:new FormData(nf), mode:'no-cors' }).catch(function(){}); } catch(_){}
-    }
-    nf.style.display='none';
-    var ok=document.getElementById('newsOk'); if(ok) ok.style.display='block';
-  });
+  // ── Newsletter + contact : enregistrés dans la table Supabase `leads` ──
+  function wireLeadForm(formId, okId, kind){
+    var f=document.getElementById(formId); if(!f) return;
+    f.addEventListener('submit',async function(e){
+      e.preventDefault();
+      if(f.querySelector('[name="bot-field"]')&&f.querySelector('[name="bot-field"]').value) return;
+      var email=(f.querySelector('[name="EMAIL"]')||{}).value||'';
+      var msgEl=f.querySelector('[name="MESSAGE"]'), nameEl=f.querySelector('[name="NAME"]');
+      var err=f.parentNode.querySelector('.news-err');
+      if(!err){ err=document.createElement('div'); err.className='news-err'; err.style.cssText='color:var(--red,#f87171);font-size:13px;margin-top:8px;'; f.insertAdjacentElement('afterend',err); }
+      err.textContent='';
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())){ err.textContent='Adresse email invalide.'; return; }
+      if(msgEl && !msgEl.value.trim()){ err.textContent='Écrivez votre message.'; return; }
+      var btn=f.querySelector('button[type=submit]'); if(btn) btn.disabled=true;
+      try{
+        if(typeof supabaseClient==='undefined') throw new Error('client');
+        var res=await supabaseClient.from('leads').insert({
+          kind:kind, email:email.trim().slice(0,254),
+          name:nameEl&&nameEl.value.trim()?nameEl.value.trim().slice(0,120):null,
+          message:msgEl?msgEl.value.trim().slice(0,5000):null,
+          page:location.pathname.slice(0,300)
+        });
+        if(res.error) throw res.error;
+        f.style.display='none';
+        var ok=document.getElementById(okId); if(ok) ok.style.display='block';
+      }catch(_){
+        err.textContent="L'envoi a échoué. Réessayez dans un instant.";
+      }finally{ if(btn) btn.disabled=false; }
+    });
+  }
+  wireLeadForm('contactForm','contactOk','contact');
+  wireLeadForm('newsForm','newsOk','newsletter');
 
   var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
