@@ -373,7 +373,11 @@ async function handleAuthSubmit() {
 
       const { error } = await supabaseClient.auth.signUp({
         email, password,
-        options: { data: { full_name: fullName } }
+        options: {
+          data: { full_name: fullName },
+          // Sans ça, le lien du mail de confirmation pointe vers la "Site URL" Supabase
+          emailRedirectTo: window.location.origin + '/app.html',
+        }
       });
       if (error) throw error;
       showSuccess('Compte créé ! Vérifiez votre email pour confirmer votre inscription.');
