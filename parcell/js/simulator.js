@@ -291,8 +291,15 @@ function updateSimLoyer(){
       const q=LYON_QUARTIERS.find(x=>x.code===qCode);
       if(q){ lyrBase=simType==='Apt'?q.loyer_apt:q.loyer_msn; tension=q.Tension; qLabel=' · '+qCode; }
     }
-    if(!lyrBase){ lyrBase=simType==='Apt'?city.Loyer_m2_Apt:city.Loyer_m2_Msn; tension=city.Tension; }
+    if(!lyrBase){ lyrBase=simType==='Apt'?(city.Loyer_m2_Apt||city.Loyer_m2_Msn):(city.Loyer_m2_Msn||city.Loyer_m2_Apt); tension=city.Tension; }
     cityName=city.Ville;
+    if(!lyrBase){
+      // Pas de loyer de référence pour cette commune (DOM-TOM, données manquantes…) :
+      // on garde le loyer saisi au lieu d'afficher 0 € et une rentabilité nulle.
+      document.getElementById('lyrInfo').textContent = `${cityName} · loyer de référence indisponible, saisissez le loyer attendu`;
+      calcSim();
+      return;
+    }
   }
 
   const surf=parseFloat(document.getElementById(simMode==='simple'?'simSurfS':'simSurf').value)||45;
@@ -483,33 +490,30 @@ function openDrawer(type){
   } else if(type==='loyer-source'){
     dt.textContent='D’où vient cette estimation ?';ds.textContent=locLabel;
     const cur = city ? (simType==='Apt' ? city.Loyer_m2_Apt : city.Loyer_m2_Msn) : null;
-    const est2026 = cur ? Math.round(cur*1.08*100)/100 : null;
-    const seloger = cur ? Math.round(cur*1.18*100)/100 : null;
+    const src = city?.source_loyer || 'Carte des Loyers (ministère du Logement)';
     dc.innerHTML = `
       <div class="drawer-section">
         <div style="background:var(--bg3);border-radius:var(--radius-sm);padding:14px 16px;font-size:13px;color:var(--text2);line-height:1.65;">
-          Le loyer par m² affiché par Yrow provient de la <strong style="color:var(--text)">Carte des Loyers 2023</strong>, publiée par le <strong style="color:var(--text)">Ministère du Logement</strong> (INSEE + SeLoger + LocServ). C'est la référence officielle utilisée par les banques et l'administration fiscale.
+          Le loyer au m² proposé par Yrow provient de la <strong style="color:var(--text)">${src}</strong> : un loyer d'annonce médian, hors charges, estimé par commune à partir des annonces publiées sur les grands portails.
         </div>
       </div>
-      ${cur ? `<div class="drawer-section"><div class="drawer-section-title">Estimation pour ${locLabel}</div>
+      ${cur ? `<div class="drawer-section"><div class="drawer-section-title">Référence pour ${locLabel}</div>
         <div class="drawer-stat-grid">
-          <div class="drawer-stat"><div class="drawer-stat-label">Médiane 2023 (officielle)</div><div class="drawer-stat-value" style="color:var(--gold)">${cur} €/m²</div></div>
-          <div class="drawer-stat"><div class="drawer-stat-label">Actualisé 2026 (+8%)</div><div class="drawer-stat-value" style="color:var(--teal)">${est2026} €/m²</div></div>
-          <div class="drawer-stat"><div class="drawer-stat-label">SeLoger / Leboncoin</div><div class="drawer-stat-value">~${seloger} €/m²</div></div>
-          <div class="drawer-stat"><div class="drawer-stat-label">Meublé refait</div><div class="drawer-stat-value">+15 à 25%</div></div>
+          <div class="drawer-stat"><div class="drawer-stat-label">Loyer médian (${simType==='Apt'?'appartement':'maison'})</div><div class="drawer-stat-value" style="color:var(--gold)">${cur} €/m²</div></div>
+          <div class="drawer-stat"><div class="drawer-stat-label">Meublé</div><div class="drawer-stat-value">souvent +10 à 20 %</div></div>
         </div>
-      </div>` : ''}
-      <div class="drawer-section"><div class="drawer-section-title">Pourquoi c'est plus bas que SeLoger ?</div>
+      </div>` : `<div class="drawer-section"><div style="font-size:13px;color:var(--text2);">Pas de loyer de référence pour cette commune : saisissez le loyer attendu.</div></div>`}
+      <div class="drawer-section"><div class="drawer-section-title">Pourquoi l'écart avec les annonces ?</div>
         <div style="font-size:13px;color:var(--text2);line-height:1.75;">
-          • <strong style="color:var(--text)">Médiane vs annonces actives.</strong> La Carte des Loyers inclut tout le parc (baux longs, grands appartements moins chers au m²). SeLoger n'affiche que les annonces en cours, biaisées vers petits T1/T2 et biens refaités.<br>
-          • <strong style="color:var(--text)">Année de référence.</strong> Données 2023, +7 à 10% depuis en province.<br>
-          • <strong style="color:var(--text)">Hors charges.</strong> Le chiffre est HC (méthode INSEE). Les annonces "CC" ajoutent 1-2 €/m².<br>
-          • <strong style="color:var(--text)">Meublé non distingué.</strong> Le meublé se loue 15-25% plus cher que le nu.
+          • <strong style="color:var(--text)">Médiane de la commune.</strong> C'est un loyer typique, toutes surfaces confondues : un petit T1 refait se loue plus cher au m², un grand logement moins cher.<br>
+          • <strong style="color:var(--text)">Année de référence.</strong> Les données ont un ou deux ans de décalage avec le marché actuel.<br>
+          • <strong style="color:var(--text)">Hors charges.</strong> Les annonces « charges comprises » affichent un loyer plus élevé.<br>
+          • <strong style="color:var(--text)">Meublé non distingué.</strong> Le meublé se loue en général plus cher que le nu.
         </div>
       </div>
       <div class="drawer-section"><div class="drawer-section-title">Comment ajuster</div>
         <div style="font-size:13px;color:var(--text2);line-height:1.75;">
-          Le champ loyer est <strong style="color:var(--text)">éditable manuellement</strong>. Pour un scénario plus optimiste (T2 refait, meublé, centre-ville), tu peux monter au niveau SeLoger. Pour la <strong style="color:var(--text)">rentabilité réelle sur 10-20 ans</strong>, garder la médiane officielle est plus fiable. C'est ce que fera aussi ton banquier.
+          Le champ loyer est <strong style="color:var(--text)">éditable manuellement</strong>. Pour un bien refait, meublé ou très bien placé, vous pouvez le relever en vous appuyant sur les annonces comparables du quartier. Pour estimer la <strong style="color:var(--text)">rentabilité sur 10 à 20 ans</strong>, rester proche de la médiane est plus prudent.
         </div>
       </div>`;
   } else if(type==='marche'){
@@ -517,26 +521,27 @@ function openDrawer(type){
     const pop=city?.['2022']||50000,attr=city?.Attractivite||7,tension=city?.Tension||5;
     const qCode2=document.getElementById('simQuartier').value;
     const qTension=city?.hasQuartiers&&qCode2?LYON_QUARTIERS.find(q=>q.code===qCode2)?.Tension||tension:tension;
-    const seed=pop+attr*1000;const sn=n=>Math.sin(seed*n)*0.5+0.5;
-    const nbV=Math.max(8,Math.round(pop*0.0045*(attr/7)*(0.85+sn(3)*0.3)));
-    const nbL=Math.max(3,Math.round(pop*0.003*(attr/7)*(0.85+sn(7)*0.3)));
-    const delai=Math.round(55-attr*3.5);
     const tLvl=qTension>=8?4:qTension>=6?3:qTension>=4?2:1;
     const tClass=qTension>=8?'hi':qTension>=5?'md':'';
     const v=encodeURIComponent(ville);
+    const q=city?.hasQuartiers&&qCode2?LYON_QUARTIERS.find(x=>x.code===qCode2):null;
+    const prixM2=q?q.prix_m2:(simType==='Apt'?city?.Prix_m2_Apt:(city?.Prix_m2_Msn||city?.Prix_m2_Apt));
+    const loyM2=q?(simType==='Apt'?q.loyer_apt:q.loyer_msn):(simType==='Apt'?city?.Loyer_m2_Apt:city?.Loyer_m2_Msn);
+    const rdt=prixM2&&loyM2?(loyM2*12/prixM2*100).toFixed(1).replace('.',',')+' %':'n.d.';
+    const stat=(l,val,c)=>`<div class="drawer-stat"><div class="drawer-stat-label">${l}</div><div class="drawer-stat-value" style="color:${c||'var(--text)'}">${val}</div></div>`;
     dc.innerHTML=`<div class="drawer-section"><div class="drawer-section-title">Tension locative</div>
       <div style="background:var(--bg2);border-radius:var(--radius-sm);padding:14px;margin-bottom:12px;">
         <div style="display:flex;justify-content:space-between;margin-bottom:8px;"><span style="font-size:14px;font-weight:600;">${tensionLabel(qTension)}</span><span style="font-family:'Outfit';font-size:18px;font-weight:700;color:${tensionColor(qTension)}">${qTension}/10</span></div>
         <div class="tension-bar-draw">${[1,2,3,4].map(i=>`<div class="tseg ${i<=tLvl?'on '+tClass:''}"></div>`).join('')}</div>
-        <div style="font-size:12px;color:var(--text3);margin-top:8px;">Source : LocService / Manda 2024 · ${tensionLabel(qTension)==='Détendue'?'Beaucoup de biens disponibles, concurrence élevée entre propriétaires. Le loyer maximum est rarement atteint.':tensionLabel(qTension)==='Modérée'?'Marché équilibré. Les biens bien présentés se louent au prix du marché.':tensionLabel(qTension)==='Tendue'?'Forte demande. Les biens se louent rapidement, souvent au prix demandé.':'Marché extrêmement tendu. Les biens se louent en moins de 48h avec plusieurs dossiers.'}</div>
+        <div style="font-size:12px;color:var(--text3);margin-top:8px;">Score Yrow calculé à partir de la taille de la ville et de son classement en zone tendue.</div>
       </div>
       <div class="drawer-stat-grid">
-        <div class="drawer-stat"><div class="drawer-stat-label">Biens à vendre</div><div class="drawer-stat-value" style="color:var(--gold)">~${nbV}</div></div>
-        <div class="drawer-stat"><div class="drawer-stat-label">Biens à louer</div><div class="drawer-stat-value" style="color:var(--teal)">~${nbL}</div></div>
-        <div class="drawer-stat"><div class="drawer-stat-label">Délai vente moy.</div><div class="drawer-stat-value" style="color:var(--text2)">${delai}j</div></div>
-        <div class="drawer-stat"><div class="drawer-stat-label">Tension loc.</div><div class="drawer-stat-value" style="color:${tensionColor(qTension)}">${tensionLabel(qTension)}</div></div>
+        ${stat('Prix m² ('+(simType==='Apt'?'appart.':'maison')+')', prixM2?Math.round(prixM2).toLocaleString('fr-FR')+' €':'n.d.','var(--gold)')}
+        ${stat('Loyer m²', loyM2?loyM2+' €':'n.d.','var(--teal)')}
+        ${stat('Rendement brut médian', rdt)}
+        ${stat('Population', pop?Math.round(pop).toLocaleString('fr-FR'):'n.d.','var(--text2)')}
       </div>
-      <div style="font-size:11px;color:var(--text3);font-style:italic;margin-bottom:14px;">* Estimations indicatives. Sources : LocService, Manda, INSEE 2024.</div>
+      <div style="font-size:11px;color:var(--text3);font-style:italic;margin-bottom:14px;">Sources : ${q?'repères Yrow par arrondissement':'DVF (DGFiP) pour les prix, '+(city?.source_loyer||'Carte des Loyers')+' pour les loyers'}, INSEE pour la population.</div>
     </div>
     <div class="drawer-section"><div class="drawer-section-title">Rechercher des annonces</div>
       <a class="drawer-link dl-teal" href="https://www.seloger.com/annonces/achat/${v}.htm" target="_blank">🔍 SeLoger</a>

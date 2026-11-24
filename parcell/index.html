@@ -283,8 +283,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div style="font-size:11px;color:var(--teal);text-transform:uppercase;letter-spacing:0.18em;font-weight:600;margin-bottom:10px;">Newsletter</div>
       <h2 style="font-size:24px;text-align:left;">Restez informé des bonnes opportunités</h2>
       <p style="color:var(--text2);margin-top:10px;text-align:left;">Recevez nos analyses de villes et conseils d'investissement locatif. Pas de spam, désinscription en un clic.</p>
-      <!-- Brevo / Mailchimp : remplacer data-action par l'URL du formulaire. -->
-      <form class="news-form" id="newsForm" data-action="[À COMPLÉTER : URL Brevo (ou Mailchimp)]" method="POST" novalidate>
+      <form class="news-form" id="newsForm" method="POST" novalidate>
         <p style="display:none;"><label>Ne pas remplir : <input name="bot-field"></label></p>
         <input type="email" name="EMAIL" required placeholder="vous@email.fr" aria-label="Votre adresse email">
         <button class="btn btn-primary" type="submit">S'inscrire</button>
@@ -298,7 +297,7 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
       <div style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:0.18em;font-weight:600;margin-bottom:10px;">Contact</div>
       <h2 style="font-size:24px;text-align:left;">Un retour, une suggestion ?</h2>
       <p style="color:var(--text2);margin-top:10px;text-align:left;">Écris-nous ce qui te plaît, ce qui manque, ou ce que tu aimerais voir évoluer. On lit tout.</p>
-      <form class="news-form" id="contactForm" data-action="[À COMPLÉTER : URL Brevo/Formspree]" method="POST" novalidate style="display:flex;flex-direction:column;gap:10px;">
+      <form class="news-form" id="contactForm" method="POST" novalidate style="display:flex;flex-direction:column;gap:10px;">
         <input type="text" name="NAME" placeholder="Votre prénom (optionnel)" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;">
         <input type="email" name="EMAIL" required placeholder="Votre email" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;">
         <textarea name="MESSAGE" required placeholder="Votre message..." rows="4" style="background:var(--bg2);border:1px solid var(--border2);border-radius:10px;color:var(--text);padding:13px 16px;font-family:'DM Sans',sans-serif;font-size:15px;outline:none;transition:border-color .2s;resize:vertical;min-height:96px;"></textarea>
@@ -424,30 +423,38 @@ height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
   renderCityBars();
   setInterval(function(){ cityIdx=(cityIdx+1)%CITY_POOL.length; renderCityBars(); }, 5000);
 
-  // ── Formulaire contact ──
-  var cf=document.getElementById('contactForm');
-  if(cf)cf.addEventListener('submit',function(e){
-    e.preventDefault();
-    var action=(cf.getAttribute('data-action')||'').trim();
-    var configured=action && action.indexOf('À COMPLÉTER')===-1 && /^https?:\/\//.test(action);
-    if(configured){ try{ fetch(action,{method:'POST',body:new FormData(cf),mode:'no-cors'}).catch(function(){}); }catch(_){} }
-    cf.style.display='none';
-    var ok=document.getElementById('contactOk'); if(ok) ok.style.display='block';
-  });
-
-  // Capture email : envoi vers Brevo (ou Mailchimp) si data-action est configuré.
-  // Sinon, on confirme localement (la collecte ne se fera qu'apres configuration).
-  var nf=document.getElementById('newsForm');
-  if(nf)nf.addEventListener('submit',function(e){
-    e.preventDefault();
-    var action = (nf.getAttribute('data-action')||'').trim();
-    var configured = action && action.indexOf('À COMPLÉTER') === -1 && /^https?:\/\//.test(action);
-    if (configured) {
-      try { fetch(action, { method:'POST', body:new FormData(nf), mode:'no-cors' }).catch(function(){}); } catch(_){}
-    }
-    nf.style.display='none';
-    var ok=document.getElementById('newsOk'); if(ok) ok.style.display='block';
-  });
+  // ── Newsletter + contact : enregistrés dans la table Supabase `leads` ──
+  function wireLeadForm(formId, okId, kind){
+    var f=document.getElementById(formId); if(!f) return;
+    f.addEventListener('submit',async function(e){
+      e.preventDefault();
+      if(f.querySelector('[name="bot-field"]')&&f.querySelector('[name="bot-field"]').value) return;
+      var email=(f.querySelector('[name="EMAIL"]')||{}).value||'';
+      var msgEl=f.querySelector('[name="MESSAGE"]'), nameEl=f.querySelector('[name="NAME"]');
+      var err=f.parentNode.querySelector('.news-err');
+      if(!err){ err=document.createElement('div'); err.className='news-err'; err.style.cssText='color:var(--red,#f87171);font-size:13px;margin-top:8px;'; f.insertAdjacentElement('afterend',err); }
+      err.textContent='';
+      if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email.trim())){ err.textContent='Adresse email invalide.'; return; }
+      if(msgEl && !msgEl.value.trim()){ err.textContent='Écrivez votre message.'; return; }
+      var btn=f.querySelector('button[type=submit]'); if(btn) btn.disabled=true;
+      try{
+        if(typeof supabaseClient==='undefined') throw new Error('client');
+        var res=await supabaseClient.from('leads').insert({
+          kind:kind, email:email.trim().slice(0,254),
+          name:nameEl&&nameEl.value.trim()?nameEl.value.trim().slice(0,120):null,
+          message:msgEl?msgEl.value.trim().slice(0,5000):null,
+          page:location.pathname.slice(0,300)
+        });
+        if(res.error) throw res.error;
+        f.style.display='none';
+        var ok=document.getElementById(okId); if(ok) ok.style.display='block';
+      }catch(_){
+        err.textContent="L'envoi a échoué. Réessayez dans un instant.";
+      }finally{ if(btn) btn.disabled=false; }
+    });
+  }
+  wireLeadForm('contactForm','contactOk','contact');
+  wireLeadForm('newsForm','newsOk','newsletter');
 
   var reduce=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
