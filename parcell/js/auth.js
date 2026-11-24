@@ -243,7 +243,7 @@ function renderAuthHTML(mode) {
   const isNewPwd = mode === 'reset-password';
 
   return `
-<div style="width:100%;max-width:420px;">
+<div id="authPanel" style="width:100%;max-width:420px;">
   <!-- Logo -->
   <div style="text-align:center;margin-bottom:32px;">
     <div style="width:48px;height:48px;background:linear-gradient(135deg,#c9a84c,#e8c97a);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;box-shadow:0 4px 20px rgba(201,168,76,0.3);">
@@ -371,12 +371,19 @@ async function handleAuthSubmit() {
       if (password.length < 8)  { showError('Le mot de passe doit faire au moins 8 caractères.'); return; }
       if (password !== confirm)  { showError('Les mots de passe ne correspondent pas.'); return; }
 
-      const { error } = await supabaseClient.auth.signUp({
+      const { data, error } = await supabaseClient.auth.signUp({
         email, password,
-        options: { data: { full_name: fullName } }
+        options: {
+          data: { full_name: fullName },
+          // Sans ça, le lien du mail de confirmation pointe vers la "Site URL" Supabase
+          emailRedirectTo: window.location.origin + '/app.html',
+        }
       });
       if (error) throw error;
-      showSuccess('Compte créé ! Vérifiez votre email pour confirmer votre inscription.');
+      // Si la confirmation email est désactivée côté Supabase, on est déjà connecté
+      if (data?.session) { closeAuthModal(); return; }
+      showCheckEmailScreen(email);
+      return;
 
     } else {
       const email    = document.getElementById('authEmail').value.trim();
@@ -393,6 +400,70 @@ async function handleAuthSubmit() {
     btn.style.opacity = '1';
     btn.textContent = originalText;
   }
+}
+
+// ── Écran « Vérifiez votre boîte mail » après inscription ──
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+function showCheckEmailScreen(email) {
+  const panel = document.getElementById('authPanel');
+  if (!panel) return;
+  panel.innerHTML = `
+  <div style="text-align:center;margin-bottom:24px;">
+    <div style="font-family:'Outfit',sans-serif;font-weight:700;font-size:24px;color:#e4e8f2;letter-spacing:-0.02em;">Yr<span style="color:#c9a84c;">ow</span></div>
+  </div>
+  <div style="background:#161c2e;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:32px 28px;text-align:center;">
+    <div style="width:64px;height:64px;margin:0 auto 18px;border-radius:50%;background:rgba(52,211,153,0.12);border:1px solid rgba(52,211,153,0.35);display:flex;align-items:center;justify-content:center;">
+      <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+    </div>
+    <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:#e4e8f2;margin-bottom:10px;">Vérifiez votre boîte mail</div>
+    <div style="font-size:14px;color:#a3adbf;line-height:1.6;margin-bottom:6px;">Votre compte est créé. Nous venons d'envoyer un lien de confirmation à</div>
+    <div style="font-size:15px;font-weight:600;color:#c9a84c;margin-bottom:18px;word-break:break-all;">${escapeHtml(email)}</div>
+    <div style="font-size:13px;color:#7e8a9e;line-height:1.6;background:#0e1220;border-radius:10px;padding:12px 14px;text-align:left;margin-bottom:20px;">
+      1. Ouvrez l'email de Yrow (pensez à regarder dans les <b style="color:#a3adbf;">spams</b> ou « Promotions »).<br>
+      2. Cliquez sur le lien de confirmation.<br>
+      3. Vous serez connecté automatiquement.
+    </div>
+    <div id="authResendMsg" style="display:none;font-size:13px;margin-bottom:12px;"></div>
+    <button id="authResendBtn" onclick="resendSignupEmail('${escapeHtml(email).replace(/'/g, '&#39;')}')" style="width:100%;padding:11px;background:transparent;border:1px solid rgba(201,168,76,0.5);border-radius:10px;color:#c9a84c;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;cursor:pointer;margin-bottom:10px;">Renvoyer l'email</button>
+    <button onclick="showAuthModal('login')" style="width:100%;padding:11px;background:linear-gradient(135deg,#c9a84c,#e8c97a);border:none;border-radius:10px;color:#0a0d14;font-family:'DM Sans',sans-serif;font-size:14px;font-weight:700;cursor:pointer;">J'ai confirmé, me connecter</button>
+  </div>
+  <div style="text-align:center;margin-top:18px;font-size:13px;color:#7e8a9e;">
+    Mauvaise adresse ? <span onclick="showAuthModal('signup')" style="color:#c9a84c;cursor:pointer;font-weight:600;">Recommencer l'inscription</span>
+  </div>`;
+}
+
+async function resendSignupEmail(email) {
+  const btn = document.getElementById('authResendBtn');
+  const msg = document.getElementById('authResendMsg');
+  btn.disabled = true;
+  btn.style.opacity = '0.6';
+  btn.textContent = 'Envoi…';
+  const { error } = await supabaseClient.auth.resend({
+    type: 'signup',
+    email,
+    options: { emailRedirectTo: window.location.origin + '/app.html' },
+  });
+  msg.style.display = 'block';
+  if (error) {
+    msg.style.color = '#f87171';
+    msg.textContent = translateAuthError(error.message);
+    btn.disabled = false;
+    btn.style.opacity = '1';
+    btn.textContent = "Renvoyer l'email";
+    return;
+  }
+  msg.style.color = '#34d399';
+  msg.textContent = 'Email renvoyé ✓';
+  // Supabase limite les renvois : on bloque le bouton 60 s
+  let left = 60;
+  const t = setInterval(() => {
+    left -= 1;
+    btn.textContent = `Renvoyer l'email (${left}s)`;
+    if (left <= 0) { clearInterval(t); btn.disabled = false; btn.style.opacity = '1'; btn.textContent = "Renvoyer l'email"; }
+  }, 1000);
 }
 
 // ── OAuth Google ──
